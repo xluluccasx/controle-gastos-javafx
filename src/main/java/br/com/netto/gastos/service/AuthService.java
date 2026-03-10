@@ -29,6 +29,10 @@ public class AuthService {
                 throw new RuntimeException("Seu email ainda não foi confirmado.");
             }
 
+            if (message != null && message.contains("invalid_credentials")) {
+                throw new RuntimeException("email ou senha invalidos.");
+            }
+
             if (message != null && message.contains("User already registered")) {
                 throw new RuntimeException("Este email já está cadastrado.");
             }

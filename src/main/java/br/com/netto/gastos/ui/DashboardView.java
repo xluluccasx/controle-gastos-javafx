@@ -95,12 +95,20 @@ public class DashboardView {
                 YearMonth.now().minusMonths(1),
                 YearMonth.now().minusMonths(2),
                 YearMonth.now().minusMonths(3),
-                YearMonth.now().minusMonths(4)
+                YearMonth.now().minusMonths(4),
+                YearMonth.now().minusMonths(5),
+                YearMonth.now().minusMonths(6),
+                YearMonth.now().minusMonths(7),
+                YearMonth.now().minusMonths(8),
+                YearMonth.now().minusMonths(9),
+                YearMonth.now().minusMonths(10),
+                YearMonth.now().minusMonths(11),
+                YearMonth.now().minusMonths(12)
         ));
         monthPicker.setValue(YearMonth.now());
         monthPicker.setConverter(new javafx.util.StringConverter<>() {
             private final java.time.format.DateTimeFormatter fmt =
-                    java.time.format.DateTimeFormatter.ofPattern("MM-yyyy");
+                    java.time.format.DateTimeFormatter.ofPattern("MM/yyyy");
 
             @Override
             public String toString(YearMonth ym) {
@@ -286,9 +294,11 @@ public class DashboardView {
             new Alert(Alert.AlertType.INFORMATION, "Selecione um lançamento para excluir.", ButtonType.OK).showAndWait();
             return;
         }
+        java.time.format.DateTimeFormatter fmt =
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
-                "Excluir lançamento de " + selected.getDate() + " (R$ " + selected.getAmount() + ")?",
+                "Excluir lançamento de " + selected.getDate().format(fmt) + " (R$ " + selected.getAmount() + ")?",
                 ButtonType.YES, ButtonType.NO);
 
         confirm.showAndWait().ifPresent(btn -> {
