@@ -29,7 +29,7 @@ public class LoginView {
         Label title = new Label("Controle de Gastos");
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
 
-        Label subtitle = new Label("Login com Supabase (PostgreSQL) — JavaFX");
+        Label subtitle = new Label("Login   -  Al: LUCAS NETTO - RU: 4250816");
         subtitle.setStyle("-fx-opacity: 0.75;");
 
         VBox header = new VBox(6, title, subtitle);
@@ -43,6 +43,7 @@ public class LoginView {
 
         Button btnLogin = new Button("Entrar");
         Button btnSignup = new Button("Criar conta");
+        Button rmbPass = new Button("Esqueci a senha");
         btnLogin.setDefaultButton(true);
 
         Label status = new Label();
@@ -50,7 +51,7 @@ public class LoginView {
         status.setMaxWidth(Double.MAX_VALUE);
         status.setStyle("-fx-text-fill: #b00020;");
 
-        HBox actions = new HBox(10, btnLogin, btnSignup);
+        HBox actions = new HBox(10, btnLogin, btnSignup, rmbPass);
         actions.setAlignment(Pos.CENTER_LEFT);
 
         VBox form = new VBox(12,
@@ -113,5 +114,25 @@ public class LoginView {
                 status.setText("Falha ao criar conta: " + ex.getMessage());
             }
         });
+
+        rmbPass.setOnAction(e -> {
+            status.setText("");
+            try {
+                String em = email.getText().trim();
+                if (em.isBlank()) {
+                    status.setStyle("-fx-text-fill: #b00020;");
+                    status.setText("Informe o email para recuperar a senha.");
+                    return;
+                }
+
+                auth.resetPassword(em);
+                status.setStyle("-fx-text-fill: #0b6b2b;");
+                status.setText("Enviamos um link de redefinição para o email: " + em);
+            } catch (Exception ex) {
+                status.setStyle("-fx-text-fill: #b00020;");
+                status.setText(ex.getMessage());
+            }
+        });
+
     }
 }

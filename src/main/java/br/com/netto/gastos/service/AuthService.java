@@ -82,6 +82,26 @@ public class AuthService {
         }
     }
 
+    public void resetPassword(String email) throws Exception {
+        String url = AppConfig.SUPABASE_URL + "/auth/v1/recover";
+
+        String body = """
+            {"email":"%s"}
+            """.formatted(email);
+
+        try {
+            client.postJson(url, body, null);
+        } catch (RuntimeException e) {
+            String message = e.getMessage();
+
+            if (message != null && message.contains("rate limit")) {
+                throw new RuntimeException("Aguarde um pouco antes de solicitar outro reset.");
+            }
+
+            throw new RuntimeException("Erro ao enviar recuperação de senha: " + message);
+        }
+    }
+
     public void signOut() {
         Session.clear();
     }
