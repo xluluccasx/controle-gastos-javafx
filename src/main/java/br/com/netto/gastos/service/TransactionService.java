@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +36,8 @@ public class TransactionService {
                   "amount": %s,
                   "category": "%s",
                   "description": %s,
-                  "date": "%s"
+                  "date": "%s",
+                  "created_at": "%s"
                 }
                 """.formatted(
                 t.getUserId(),
@@ -45,7 +47,8 @@ public class TransactionService {
                 (t.getDescription() == null || t.getDescription().isBlank())
                         ? "null"
                         : "\"" + escapeJson(t.getDescription()) + "\"",
-                t.getDate().toString()
+                t.getDate().toString(),
+                t.getCreated_at()
         );
 
         // return=representation faz o Supabase devolver a linha criada
@@ -82,6 +85,7 @@ public class TransactionService {
 
     private Transaction parseTransaction(JsonNode n) {
         Transaction t = new Transaction();
+
         t.setId(n.path("id").asText(null));
         t.setUserId(n.path("user_id").asText(null));
         t.setType(TxType.valueOf(n.path("type").asText("EXPENSE")));
@@ -89,6 +93,14 @@ public class TransactionService {
         t.setCategory(Category.valueOf(n.path("category").asText("OUTROS")));
         t.setDescription(n.path("description").isNull() ? "" : n.path("description").asText(""));
         t.setDate(LocalDate.parse(n.path("date").asText(LocalDate.now().toString())));
+
+        t.setCreated_at(
+                java.time.OffsetDateTime
+                        .parse(n.path("created_at").asText())
+                        .atZoneSameInstant(java.time.ZoneId.systemDefault())
+                        .toLocalDateTime()
+        );
+
         return t;
     }
 

@@ -46,6 +46,8 @@ public class LoginView {
         btnLogin.setDefaultButton(true);
 
         Label status = new Label();
+        status.setWrapText(true);
+        status.setMaxWidth(Double.MAX_VALUE);
         status.setStyle("-fx-text-fill: #b00020;");
 
         HBox actions = new HBox(10, btnLogin, btnSignup);
@@ -59,7 +61,7 @@ public class LoginView {
                 status
         );
         form.setPadding(new Insets(30));
-        form.setMaxWidth(420);
+        form.setMaxWidth(720);
         form.setStyle("""
                 -fx-background-color: white;
                 -fx-background-radius: 12;
@@ -105,7 +107,7 @@ public class LoginView {
                 }
                 auth.signUp(em, pw);
                 status.setStyle("-fx-text-fill: #0b6b2b;");
-                status.setText("Conta criada. Agora faça login. (Pode exigir confirmação por email, dependendo do Supabase)");
+                status.setText("Conta criada. confirme a verificação enviada para o email: " + em);
             } catch (Exception ex) {
                 status.setStyle("-fx-text-fill: #b00020;");
                 status.setText("Falha ao criar conta: " + ex.getMessage());

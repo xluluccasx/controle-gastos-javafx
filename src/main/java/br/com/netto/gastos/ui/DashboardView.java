@@ -214,7 +214,20 @@ public class DashboardView {
         colDesc.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getDescription()));
         colDesc.setPrefWidth(260);
 
-        table.getColumns().addAll(colDate, colType, colCat, colAmount, colDesc);
+        TableColumn<Transaction, String> colDtcad = new TableColumn<>("Data de cadastro");
+        java.time.format.DateTimeFormatter fmtCad =
+                java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+        colDtcad.setCellValueFactory(c ->
+                new javafx.beans.property.SimpleStringProperty(
+                        c.getValue().getCreated_at() != null
+                                ? c.getValue().getCreated_at().format(fmtCad)
+                                : ""
+                )
+        );
+        colDtcad.setPrefWidth(180);
+
+        table.getColumns().addAll(colDate, colType, colCat, colAmount, colDesc, colDtcad);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
         table.setPrefHeight(520);
     }
