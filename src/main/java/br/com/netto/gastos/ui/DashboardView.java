@@ -58,7 +58,9 @@ public class DashboardView {
         loadInitial();
     }
 
-    public Parent getRoot() { return root; }
+    public Parent getRoot() {
+        return root;
+    }
 
     private void build() {
         // Top bar
@@ -192,8 +194,9 @@ public class DashboardView {
 
     private void setupTable() {
         TableColumn<Transaction, String> colDate = new TableColumn<>("Data");
-        colDate.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getDate().toString()));
-        colDate.setPrefWidth(110);
+        java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        colDate.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getDate().format(fmt)));
 
         TableColumn<Transaction, String> colType = new TableColumn<>("Tipo");
         colType.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getType().label()));
@@ -267,13 +270,27 @@ public class DashboardView {
         }
         pieByCategory.setData(pieData);
 
-        // Bar (receita vs despesa)
+        // Bar (totais de receita e despesa)
         barType.getData().clear();
+
         XYChart.Series<String, Number> series = new XYChart.Series<>();
         series.setName("Total no mês");
-        series.getData().add(new XYChart.Data<>("Receita", income.doubleValue()));
-        series.getData().add(new XYChart.Data<>("Despesa", expense.doubleValue()));
+
+        XYChart.Data<String, Number> receita = new XYChart.Data<>("Receita", income.doubleValue());
+        XYChart.Data<String, Number> despesa = new XYChart.Data<>("Despesa", expense.doubleValue());
+
+        series.getData().addAll(receita, despesa);
         barType.getData().add(series);
+
+// pinta as barras depois que o gráfico renderizar
+        javafx.application.Platform.runLater(() -> {
+            if (receita.getNode() != null) {
+                receita.getNode().setStyle("-fx-bar-fill: #2ecc71;");
+            }
+            if (despesa.getNode() != null) {
+                despesa.getNode().setStyle("-fx-bar-fill: #e74c3c;");
+            }
+        });
     }
 
     private void onAdd() {

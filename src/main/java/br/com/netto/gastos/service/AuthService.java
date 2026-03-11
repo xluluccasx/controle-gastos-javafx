@@ -48,17 +48,32 @@ public class AuthService {
                 {"email":"%s","password":"%s"}
                 """.formatted(email, password);
 
-        String json = client.postJson(url, body, null);
+        try {
+            String json = client.postJson(url, body, null);
 
-        JsonNode root = mapper.readTree(json);
-        String accessToken = root.path("access_token").asText(null);
-        String userId = root.path("user").path("id").asText(null);
+            JsonNode root = mapper.readTree(json);
+            String accessToken = root.path("access_token").asText(null);
+            String userId = root.path("user").path("id").asText(null);
 
-        if (accessToken == null || userId == null) {
-            throw new RuntimeException("Login não retornou token/usuário. Resposta: " + json);
+            if (accessToken == null || userId == null) {
+                throw new RuntimeException("Login não retornou token/usuário. Resposta: " + json);
+            }
+
+            Session.setLogin(accessToken, userId, email);
+
+        } catch (RuntimeException e) {
+            String message = e.getMessage();
+
+            if (message != null && message.contains("email_not_confirmed")) {
+                throw new RuntimeException("Seu email ainda não foi confirmado.");
+            }
+
+            if (message != null && message.contains("invalid_credentials")) {
+                throw new RuntimeException("Email ou senha inválidos.");
+            }
+
+            throw new RuntimeException("Falha no login: " + message);
         }
-
-        Session.setLogin(accessToken, userId, email);
     }
 
     public void signOut() {
