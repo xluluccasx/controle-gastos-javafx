@@ -36,8 +36,7 @@ public class TransactionService {
                   "amount": %s,
                   "category": "%s",
                   "description": %s,
-                  "date": "%s",
-                  "created_at": "%s"
+                  "date": "%s"
                 }
                 """.formatted(
                 t.getUserId(),
@@ -47,8 +46,7 @@ public class TransactionService {
                 (t.getDescription() == null || t.getDescription().isBlank())
                         ? "null"
                         : "\"" + escapeJson(t.getDescription()) + "\"",
-                t.getDate().toString(),
-                t.getCreated_at()
+                t.getDate().toString()
         );
 
         // return=representation faz o Supabase devolver a linha criada

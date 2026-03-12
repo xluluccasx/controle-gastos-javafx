@@ -196,7 +196,9 @@ public class DashboardView {
         TableColumn<Transaction, String> colDate = new TableColumn<>("Data");
         java.time.format.DateTimeFormatter fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+
         colDate.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getDate().format(fmt)));
+        colDate.setPrefWidth(100);
 
         TableColumn<Transaction, String> colType = new TableColumn<>("Tipo");
         colType.setCellValueFactory(c -> new javafx.beans.property.SimpleStringProperty(c.getValue().getType().label()));
