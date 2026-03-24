@@ -29,7 +29,7 @@ public class LoginView {
         Label title = new Label("Controle de Gastos");
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
 
-        Label subtitle = new Label("Login   -  Al: LUCAS NETTO - RU: 4250816");
+        Label subtitle = new Label("Login   -  AL: LUCAS NETTO - RU: 4250816");
         subtitle.setStyle("-fx-opacity: 0.75;");
 
         VBox header = new VBox(6, title, subtitle);
