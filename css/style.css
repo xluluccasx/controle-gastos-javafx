@@ -1,162 +1,214 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Controle de Gastos</title>
-  <link rel="stylesheet" href="./css/style.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-</head>
-<body>
-  <div class="page">
-    <header class="topbar">
-      <div>
-        <h1>Controle de Gastos</h1>
-        <p class="subtitle">Acesso web hospedado no GitHub Pages</p>
-      </div>
-      <div id="userBox" class="user-box hidden">
-        <span id="userEmail"></span>
-        <button id="btnLogout" class="btn btn-danger">Sair</button>
-      </div>
-    </header>
+* {
+  box-sizing: border-box;
+}
 
-    <main>
-      <!-- AUTENTICAÇÃO -->
-      <section id="authSection" class="card auth-card">
-        <h2>Acesso</h2>
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f6f7fb;
+  color: #1f2937;
+}
 
-        <div class="form-grid">
-          <div>
-            <label for="email">E-mail</label>
-            <input id="email" type="email" placeholder="seuemail@exemplo.com" />
-          </div>
+.page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
 
-          <div>
-            <label for="password">Senha</label>
-            <input id="password" type="password" placeholder="Digite sua senha" />
-          </div>
-        </div>
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
 
-        <div class="actions">
-          <button id="btnLogin" class="btn btn-primary">Entrar</button>
-          <button id="btnSignup" class="btn btn-secondary">Criar conta</button>
-          <button id="btnForgot" class="btn btn-light">Esqueci a senha</button>
-        </div>
+.topbar h1 {
+  margin: 0;
+  font-size: 32px;
+}
 
-        <p id="authStatus" class="status"></p>
-      </section>
+.subtitle {
+  margin: 4px 0 0;
+  color: #6b7280;
+}
 
-      <!-- DASHBOARD -->
-      <section id="dashboardSection" class="hidden">
-        <div class="dashboard-header card">
-          <div class="filter-row">
-            <div>
-              <label for="monthFilter">Mês</label>
-              <input id="monthFilter" type="month" />
-            </div>
-            <button id="btnRefresh" class="btn btn-light">Atualizar</button>
-          </div>
-        </div>
+.user-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
-        <div class="kpis">
-          <div class="card kpi">
-            <h3>Receitas</h3>
-            <p id="kpiIncome">R$ 0,00</p>
-          </div>
-          <div class="card kpi">
-            <h3>Despesas</h3>
-            <p id="kpiExpense">R$ 0,00</p>
-          </div>
-          <div class="card kpi">
-            <h3>Saldo</h3>
-            <p id="kpiBalance">R$ 0,00</p>
-          </div>
-        </div>
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+}
 
-        <div class="content-grid">
-          <section class="card">
-            <h2>Novo lançamento</h2>
+.auth-card {
+  max-width: 760px;
+  margin: 0 auto;
+}
 
-            <div class="form-grid">
-              <div>
-                <label for="type">Tipo</label>
-                <select id="type">
-                  <option value="INCOME">Receita</option>
-                  <option value="EXPENSE">Despesa</option>
-                </select>
-              </div>
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
 
-              <div>
-                <label for="category">Categoria</label>
-                <select id="category">
-                  <option value="ALIMENTACAO">Alimentação</option>
-                  <option value="TRANSPORTE">Transporte</option>
-                  <option value="MORADIA">Moradia</option>
-                  <option value="SAUDE">Saúde</option>
-                  <option value="EDUCACAO">Educação</option>
-                  <option value="LAZER">Lazer</option>
-                  <option value="CONTAS">Contas</option>
-                  <option value="OUTROS">Outros</option>
-                </select>
-              </div>
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
 
-              <div>
-                <label for="amount">Valor</label>
-                <input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" />
-              </div>
+input,
+select,
+button {
+  font: inherit;
+}
 
-              <div>
-                <label for="date">Data</label>
-                <input id="date" type="date" />
-              </div>
-            </div>
+input,
+select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #fff;
+}
 
-            <div>
-              <label for="description">Descrição</label>
-              <input id="description" type="text" placeholder="Descrição do lançamento" />
-            </div>
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
 
-            <div class="actions">
-              <button id="btnAddTransaction" class="btn btn-primary">Salvar lançamento</button>
-            </div>
+.btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 11px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
 
-            <p id="txStatus" class="status"></p>
-          </section>
+.btn-primary {
+  background: #2563eb;
+  color: #fff;
+}
 
-          <section class="card">
-            <h2>Gráficos</h2>
-            <div class="chart-wrap">
-              <canvas id="pieChart"></canvas>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="barChart"></canvas>
-            </div>
-          </section>
-        </div>
+.btn-secondary {
+  background: #10b981;
+  color: #fff;
+}
 
-        <section class="card">
-          <h2>Lançamentos do mês</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Tipo</th>
-                  <th>Categoria</th>
-                  <th>Valor</th>
-                  <th>Descrição</th>
-                  <th>Cadastro</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
-              <tbody id="transactionsTable"></tbody>
-            </table>
-          </div>
-        </section>
-      </section>
-    </main>
-  </div>
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
 
-  <script type="module" src="./js/app.js"></script>
-</body>
-</html>
+.btn-light {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.status {
+  margin-top: 12px;
+  white-space: pre-line;
+  color: #b00020;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.dashboard-header {
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.kpi h3 {
+  margin: 0 0 8px;
+  color: #6b7280;
+}
+
+.kpi p {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.content-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.chart-wrap {
+  height: 280px;
+  margin-bottom: 18px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 12px 10px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background: #f9fafb;
+}
+
+.action-delete {
+  background: #ef4444;
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+@media (max-width: 960px) {
+  .form-grid,
+  .kpis,
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar,
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .user-box {
+    justify-content: space-between;
+  }
+}
