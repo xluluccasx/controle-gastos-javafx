@@ -54,13 +54,6 @@ const typeLabels = {
 init();
 
 async function init() {
-const session = await getSession();
-
-  // Se não houver sessão (usuário não logado), redireciona para a tela de login
-  if (!session?.user) {
-    //window.location.href = "controle-gastos-javafx/";
-    return;
-  }
   const now = new Date();
   monthFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   dateEl.value = todayISO();
@@ -154,12 +147,12 @@ async function onForgotPassword() {
 
 async function onLogout() {
   try {
-    await signOut(); // Realiza o logout
-    window.location.href = "/"; // Redireciona para a página inicial (login)
+    await signOut();
   } catch (err) {
-    console.error('Erro ao sair:', err);
+    setAuthError(`Erro ao sair: ${err.message}`);
   }
 }
+
 
 async function onAddTransaction() {
   txStatus.textContent = "";
