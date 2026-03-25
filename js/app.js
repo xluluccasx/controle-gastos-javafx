@@ -54,6 +54,13 @@ const typeLabels = {
 init();
 
 async function init() {
+const session = await getSession();
+
+  // Se não houver sessão (usuário não logado), redireciona para a tela de login
+  if (!session?.user) {
+    window.location.href = "/";
+    return;
+  }
   const now = new Date();
   monthFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   dateEl.value = todayISO();
