@@ -148,11 +148,12 @@ async function onForgotPassword() {
 async function onLogout() {
   try {
     await signOut();
+
+    window.location.href = "login.html";
   } catch (err) {
-    setAuthError(`Erro ao sair: ${err.message}`);
+    console.error("Erro ao sair:", err);
   }
 }
-
 
 async function onAddTransaction() {
   txStatus.textContent = "";
