@@ -148,7 +148,6 @@ async function onForgotPassword() {
 async function onLogout() {
   try {
     await signOut();
-
     window.location.href = "login.html";
   } catch (err) {
     console.error("Erro ao sair:", err);
