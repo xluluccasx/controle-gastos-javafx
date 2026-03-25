@@ -154,11 +154,8 @@ async function onForgotPassword() {
 
 async function onLogout() {
   try {
-    // Realiza o logout
-    await signOut();
-
-    // Redireciona para a tela de login (ou recarrega a página)
-    window.location.reload(); // Isso vai recarregar a página inteira
+    await signOut(); // Realiza o logout
+    window.location.href = "/"; // Redireciona para a página inicial (login)
   } catch (err) {
     console.error('Erro ao sair:', err);
   }
