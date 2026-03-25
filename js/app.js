@@ -58,7 +58,7 @@ const session = await getSession();
 
   // Se não houver sessão (usuário não logado), redireciona para a tela de login
   if (!session?.user) {
-    window.location.href = "/";
+    window.location.href = "controle-gastos-javafx/";
     return;
   }
   const now = new Date();
