@@ -31,7 +31,15 @@ const dateEl = document.getElementById("date");
 const descriptionEl = document.getElementById("description");
 const receiptFileEl = document.getElementById("receiptFile");
 const btnExportPdf = document.getElementById("btnExportPdf");
+const btnSaveCategories = document.getElementById("btnSaveCategories");
 btnExportPdf.addEventListener("click", exportPdf);
+const categorySection = document.getElementById("categorySection");
+const categoryList = document.getElementById("categoryList");
+const btnAddCategory = document.getElementById("btnAddCategory");
+const btnBackDashboard = document.getElementById("btnBackDashboard");
+const btnManageCategories = document.getElementById("btnManageCategories");
+const newCategoryName = document.getElementById("newCategoryName");
+const newCategoryType = document.getElementById("newCategoryType");
 
 const kpiIncome = document.getElementById("kpiIncome");
 const kpiExpense = document.getElementById("kpiExpense");
@@ -41,6 +49,8 @@ const transactionsTable = document.getElementById("transactionsTable");
 let pieChart;
 let barChart;
 let currentTransactions = [];
+let editingId = null;
+let categoryHiddenChanges = {};
 
 const categoryLabels = {
   ALIMENTACAO: "Alimentação",
@@ -57,6 +67,7 @@ const typeLabels = {
   INCOME: "Receita",
   EXPENSE: "Despesa"
 };
+
 
 init();
 
@@ -79,13 +90,38 @@ async function init() {
   btnLogout.addEventListener("click", onLogout);
   btnRefresh.addEventListener("click", loadTransactions);
   btnAddTransaction.addEventListener("click", onAddTransaction);
-  btnApplyFilter.addEventListener("click", () => {
-    animateRangeChange(loadTransactions);
+  btnManageCategories?.addEventListener("click", openCategoryManager);
+  await loadCategoryOptions();
+  typeEl.addEventListener("change", loadCategoryOptions);
+  btnAddCategory.addEventListener("click", async () => {});
+
+  btnAddCategory?.addEventListener("click", async () => {
+    const name = newCategoryName.value.trim();
+    const type = newCategoryType.value;
+
+    if (!name) return;
+
+    const session = await getSession();
+
+    await supabase.from("categories").insert({
+      name,
+      type,
+      is_default: false
+    });
+    newCategoryName.value = "";
+    showToast("Categoria salva!");
+    loadCategoryList();
   });
 
-  supabase.auth.onAuthStateChange(async () => {
-    await applySession();
-  });
+btnBackDashboard.addEventListener("click", async () => {
+  categorySection.classList.add("hidden");
+  dashboardSection.classList.remove("hidden");
+
+  await loadCategoryOptions();
+});
+  btnApplyFilter.addEventListener("click", () => {animateRangeChange(loadTransactions);});
+
+  supabase.auth.onAuthStateChange(async () => {await applySession();});
 }
 
 async function applySession() {
@@ -233,6 +269,25 @@ async function onAddTransaction() {
     date
   };
 
+  // 🔥 EDITAR
+  if (editingId) {
+    const { error } = await supabase
+      .from(TABLE_NAME)
+      .update(payload)
+      .eq("id", editingId);
+
+    if (error) {
+      setTxError(`Erro ao atualizar: ${error.message}`);
+      return;
+    }
+
+    editingId = null;
+    setTxSuccess("Lançamento atualizado!");
+    await loadTransactions();
+    return;
+  }
+
+  // 🔥 INSERIR
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .insert(payload)
@@ -244,7 +299,8 @@ async function onAddTransaction() {
     return;
   }
 
-  const file = document.getElementById("receiptFile")?.files[0];
+  // 🔥 UPLOAD (AGORA NO LUGAR CERTO)
+  const file = receiptFileEl?.files[0];
 
   if (file) {
     const ext = file.name.split(".").pop();
@@ -262,25 +318,20 @@ async function onAddTransaction() {
       return;
     }
 
-    const { error: updateError } = await supabase
+    await supabase
       .from(TABLE_NAME)
       .update({ receipt_path: filePath })
       .eq("id", data.id);
-
-    if (updateError) {
-      setTxError("Upload feito, mas erro ao vincular: " + updateError.message);
-      return;
-    }
   }
 
+  // 🔥 LIMPA CAMPOS
   setTxSuccess("Lançamento salvo!");
 
   amountEl.value = "";
   descriptionEl.value = "";
   dateEl.value = new Date().toISOString().slice(0, 10);
 
-  const fileInput = document.getElementById("receiptFile");
-  if (fileInput) fileInput.value = "";
+  if (receiptFileEl) receiptFileEl.value = "";
 
   await loadTransactions();
 }
@@ -350,6 +401,14 @@ function renderTable(list) {
         ${
           tx.receipt_path
             ? `<button class="btn btn-light action-view" data-path="${tx.receipt_path}">Ver</button>`
+            : ""
+        }
+      </td>
+      <td>
+        <button class="action-edit" data-id="${tx.id}">✏️</button>
+        ${
+          tx.receipt_path
+            ? `<button class="action-view" data-path="${tx.receipt_path}">Ver</button>`
             : ""
         }
       </td>
@@ -688,4 +747,254 @@ async function animateRangeChange(callback) {
   setTimeout(() => {
     content.forEach(el => el.classList.remove("range-transition-in"));
   }, 250);
+}
+// categorias
+
+async function createCategory(name, type) {
+  const session = await getSession();
+
+  return await supabase
+    .from("categories")
+    .insert({
+      name,
+      type,
+      user_id: session.user.id
+    });
+}
+
+async function loadCategoryList() {
+  const session = await getSession();
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select(`
+      id,
+      name,
+      type,
+      is_default,
+      user_categories (
+        hidden,
+        user_id
+      )
+    `);
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+
+  categoryList.innerHTML = "";
+
+  (data || []).forEach(cat => {
+
+    const userConfig = (cat.user_categories || []).find(
+      u => u.user_id === session.user.id
+    );
+
+    const hidden = userConfig?.hidden || false;
+
+    const li = document.createElement("li");
+
+    li.style.display = "flex";
+    li.style.justifyContent = "space-between";
+    li.style.marginBottom = "8px";
+
+    li.innerHTML = `
+      <span>
+        ${cat.name} (${cat.type}) ${cat.is_default ? "⭐" : ""}
+      </span>
+
+      <div>
+        ${
+          cat.is_default
+            ? `<label>
+                <input type="checkbox" data-hide="${cat.id}" ${hidden ? "checked" : ""}>
+                Ocultar
+              </label>`
+            : `
+              <button data-edit="${cat.id}">✏️</button>
+              <button data-delete="${cat.id}">🗑️</button>
+            `
+        }
+      </div>
+    `;
+
+    categoryList.appendChild(li);
+  });
+}
+
+async function updateCategory(id, name) {
+  return await supabase
+    .from("categories")
+    .update({ name })
+    .eq("id", id);
+}
+
+async function deleteCategory(id) {
+  return await supabase
+    .from("categories")
+    .delete()
+    .eq("id", id);
+}
+function openCategoryManager() {
+  categoryHiddenChanges = {};
+
+  dashboardSection.classList.add("hidden");
+  categorySection.classList.remove("hidden");
+
+  loadCategoryList();
+}
+
+categoryList?.addEventListener("click", async (e) => {
+
+  const edit = e.target.dataset.edit;
+  if (edit) {
+    const name = prompt("Novo nome:");
+    if (!name) return;
+
+    await supabase
+      .from("categories")
+      .update({ name })
+      .eq("id", edit);
+
+    loadCategoryList();
+    return;
+  }
+
+  const del = e.target.dataset.delete;
+  if (del) {
+    if (!confirm("Excluir categoria?")) return;
+
+    await supabase
+      .from("categories")
+      .delete()
+      .eq("id", del);
+    showToast("Categoria excluída!","error");
+    loadCategoryList();
+    return;
+  }
+});
+
+categoryList?.addEventListener("change", (e) => {
+  const id = e.target.dataset.hide;
+  if (!id) return;
+
+  categoryHiddenChanges[id] = e.target.checked;
+});
+
+async function toggleCategoryHidden(categoryId, hidden) {
+  const session = await getSession();
+
+  await supabase
+    .from("user_categories")
+    .upsert(
+      {
+        user_id: session.user.id,
+        category_id: categoryId,
+        hidden
+      },
+      {
+        onConflict: "user_id,category_id"
+      }
+    );
+}
+
+async function loadCategoryOptions() {
+  const session = await getSession();
+
+  // 🔥 1. busca TODAS categorias
+  const { data: categories, error: err1 } = await supabase
+    .from("categories")
+    .select("*");
+
+  if (err1) {
+    console.error(err1);
+    return;
+  }
+
+  // 🔥 2. busca configurações do usuário
+  const { data: userCats, error: err2 } = await supabase
+    .from("user_categories")
+    .select("*")
+    .eq("user_id", session.user.id);
+
+  if (err2) {
+    console.error(err2);
+    return;
+  }
+
+  // 🔥 3. cria mapa rápido (isso resolve seu bug)
+  const userMap = {};
+
+  (userCats || []).forEach(u => {
+    userMap[u.category_id] = u;
+  });
+
+  const selectedType = typeEl.value;
+
+  categoryEl.innerHTML = "";
+
+  // 🔥 4. monta o select corretamente
+  (categories || []).forEach(cat => {
+
+    if (cat.type !== selectedType) return;
+
+    const userConfig = userMap[cat.id];
+
+    // 🔥 regra final correta
+    if (userConfig && userConfig.hidden) return;
+
+    const option = document.createElement("option");
+    option.value = cat.name;
+    option.textContent = cat.name;
+
+    categoryEl.appendChild(option);
+  });
+}
+btnSaveCategories?.addEventListener("click", async () => {
+  const session = await getSession();
+
+  for (const [categoryId, hidden] of Object.entries(categoryHiddenChanges)) {
+
+    await supabase
+      .from("user_categories")
+      .upsert(
+        {
+          user_id: session.user.id,
+          category_id: categoryId,
+          hidden
+        },
+        {
+          onConflict: "user_id,category_id"
+        }
+      );
+  }
+
+  categoryHiddenChanges = {};
+
+  await loadCategoryList();
+  await loadCategoryOptions();
+
+  showToast("Categorias atualizadas!");
+});
+
+function showToast(message, type = "success") {
+  const toast = document.getElementById("toast");
+
+  toast.textContent = message;
+
+  // cores por tipo
+  if (type === "error") {
+    toast.style.background = "#dc2626";
+  } else {
+    toast.style.background = "#10b981";
+  }
+
+  toast.classList.remove("hide");
+  toast.classList.add("show");
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+    toast.classList.add("hide");
+  }, 2500);
 }
