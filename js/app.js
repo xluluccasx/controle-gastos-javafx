@@ -312,7 +312,13 @@ function renderTable(list) {
       <td>${formatMoney(Number(tx.amount))}</td>
       <td>${tx.description ?? ""}</td>
       <td>${formatDateTimeLocal(tx.created_at)}</td>
-      <td><button class="action-delete" data-id="${tx.id}">Excluir</button></td>
+      <td>
+        ${
+          tx.receipt_path
+            ? `<button class="btn btn-light" onclick="openReceipt('${tx.receipt_path}')">Ver</button>`
+            : ""
+        }
+      </td>
     `;
 
     transactionsTable.appendChild(tr);
