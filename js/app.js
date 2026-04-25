@@ -86,6 +86,8 @@ async function applySession() {
     userBox.classList.remove("hidden");
     userEmail.textContent = session.user.email || "";
     await loadTransactions();
+    requestAnimationFrame(() => {
+      animateDashboard();
   } else {
     authSection.classList.remove("hidden");
     dashboardSection.classList.add("hidden");
@@ -106,7 +108,26 @@ async function onLogin() {
   }
 
   try {
-    await signIn(email, password);
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    console.log("login ok");
+
+    // 🔥 FORÇA UI (não depende do Supabase)
+    authSection.classList.add("hidden");
+    dashboardSection.classList.remove("hidden");
+    userBox.classList.remove("hidden");
+    userEmail.textContent = data.user.email;
+
+    await loadTransactions();
+
   } catch (err) {
     setAuthError(`Falha no login: ${err.message}`);
   }
@@ -150,11 +171,25 @@ async function onForgotPassword() {
 }
 
 async function onLogout() {
+  console.log("Button Pressed");
+
   try {
-    await signOut();
-    window.location.reload(); // ✔ reload em vez de redirect
+    supabase.auth.signOut().catch(() => {});
+
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith("sb-")) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    sessionStorage.clear();
+
+    console.log("sessão limpa manualmente");
+
+    animateLogout();
+
   } catch (err) {
-    console.error("Erro ao sair:", err);
+    console.error(err);
   }
 }
 
@@ -300,23 +335,29 @@ function renderTable(list) {
     transactionsTable.appendChild(tr);
   }
 
-  document.querySelectorAll(".action-delete").forEach(btn => {
-    btn.addEventListener("click", async (e) => {
-      const id = e.target.dataset.id;
-
-      if (!confirm("Deseja excluir este lançamento?")) return;
-
-      await deleteTransaction(id);
-    });
-  });
-
-  document.querySelectorAll(".action-view").forEach(btn => {
-    btn.addEventListener("click", async (e) => {
-      const path = e.target.dataset.path;
-      await openReceipt(path);
-    });
-  });
 }
+transactionsTable.addEventListener("click", async (e) => {
+
+  const btnDelete = e.target.closest(".action-delete");
+  if (btnDelete) {
+    const id = btnDelete.dataset.id;
+
+    console.log("clicou delete:", id);
+
+    if (!confirm("Deseja excluir este lançamento?")) return;
+
+    await deleteTransaction(id);
+    return;
+  }
+
+  const btnView = e.target.closest(".action-view");
+  if (btnView) {
+    const path = btnView.dataset.path;
+
+    await openReceipt(path);
+    return;
+  }
+});
 
 async function deleteTransaction(id) {
   // 1. buscar o receipt_path antes de deletar
@@ -545,4 +586,39 @@ function exportPdf() {
   });
 
   doc.save(`relatorio-gastos-${monthFilter.value}.pdf`);
+}
+
+function animateLogout() {
+  const dashboard = document.getElementById("dashboardSection");
+  const auth = document.getElementById("authSection");
+
+  // aplica fade-out no dashboard
+  dashboard.classList.add("fade-out");
+
+  setTimeout(() => {
+    // esconde dashboard
+    dashboard.classList.add("hidden");
+    dashboard.classList.remove("fade-out");
+
+    // mostra login
+    auth.classList.remove("hidden");
+
+    // anima entrada
+    auth.classList.add("fade-in");
+
+    setTimeout(() => {
+      auth.classList.remove("fade-in");
+    }, 300);
+
+  }, 300);
+}
+
+function animateDashboard() {
+  const items = document.querySelectorAll("#dashboardSection .bubble");
+
+  items.forEach((el, index) => {
+    setTimeout(() => {
+      el.classList.add("show");
+    }, index * 120);
+  });
 }
