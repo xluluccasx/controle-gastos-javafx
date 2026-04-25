@@ -20,6 +20,9 @@ const btnRefresh = document.getElementById("btnRefresh");
 const btnAddTransaction = document.getElementById("btnAddTransaction");
 
 const monthFilter = document.getElementById("monthFilter");
+const startDateEl = document.getElementById("startDate");
+const endDateEl = document.getElementById("endDate");
+const btnApplyFilter = document.getElementById("btnApplyFilter");
 
 const typeEl = document.getElementById("type");
 const categoryEl = document.getElementById("category");
@@ -59,7 +62,13 @@ init();
 
 async function init() {
   const now = new Date();
-  monthFilter.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (startDateEl && endDateEl) {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    startDateEl.value = firstDay.toISOString().slice(0, 10);
+    endDateEl.value = now.toISOString().slice(0, 10);
+  }
   dateEl.value = todayISO();
 
   await applySession();
@@ -70,6 +79,9 @@ async function init() {
   btnLogout.addEventListener("click", onLogout);
   btnRefresh.addEventListener("click", loadTransactions);
   btnAddTransaction.addEventListener("click", onAddTransaction);
+  btnApplyFilter.addEventListener("click", () => {
+    animateRangeChange(loadTransactions);
+  });
 
   supabase.auth.onAuthStateChange(async () => {
     await applySession();
@@ -85,9 +97,13 @@ async function applySession() {
     dashboardSection.classList.remove("hidden");
     userBox.classList.remove("hidden");
     userEmail.textContent = session.user.email || "";
+
     await loadTransactions();
+
     requestAnimationFrame(() => {
       animateDashboard();
+    });
+
   } else {
     authSection.classList.remove("hidden");
     dashboardSection.classList.add("hidden");
@@ -286,17 +302,24 @@ async function loadTransactions() {
   const session = await getSession();
   if (!session?.user) return;
 
-  const [year, month] = monthFilter.value.split("-").map(Number);
-  const from = `${year}-${String(month).padStart(2, "0")}-01`;
-  const to = endOfMonthISO(year, month);
+  const start = startDateEl.value;
+  const end = endDateEl.value;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from(TABLE_NAME)
     .select("*")
     .eq("user_id", session.user.id)
-    .gte("date", from)
-    .lte("date", to)
     .order("date", { ascending: false });
+
+  if (start) {
+    query = query.gte("date", start);
+  }
+
+  if (end) {
+    query = query.lte("date", end);
+  }
+
+  const { data, error } = await query;
 
   if (error) {
     setTxError(`Erro ao carregar: ${error.message}`);
@@ -621,4 +644,48 @@ function animateDashboard() {
       el.classList.add("show");
     }, index * 120);
   });
+}
+
+document.addEventListener("click", function (e) {
+  const btn = e.target.closest(".btn");
+  if (!btn) return;
+
+  const circle = document.createElement("span");
+  circle.classList.add("ripple");
+
+  const rect = btn.getBoundingClientRect();
+
+  const size = Math.max(rect.width, rect.height);
+  const x = e.clientX - rect.left - size / 2;
+  const y = e.clientY - rect.top - size / 2;
+
+  circle.style.width = circle.style.height = size + "px";
+  circle.style.left = x + "px";
+  circle.style.top = y + "px";
+
+  btn.appendChild(circle);
+
+  setTimeout(() => {
+    circle.remove();
+  }, 600);
+});
+async function animateRangeChange(callback) {
+  const content = document.querySelectorAll(
+    ".content-grid, .kpis, .table-wrap"
+  );
+
+  content.forEach(el => el.classList.add("range-transition-out"));
+
+  await new Promise(r => setTimeout(r, 250));
+
+  await callback();
+
+  content.forEach(el => {
+    el.classList.remove("range-transition-out");
+    el.classList.add("range-transition-in");
+  });
+
+  setTimeout(() => {
+    content.forEach(el => el.classList.remove("range-transition-in"));
+  }, 250);
 }

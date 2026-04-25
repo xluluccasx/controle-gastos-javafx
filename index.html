@@ -51,9 +51,21 @@
         <section id="dashboardSection" class="hidden">
             <div class="dashboard-header card">
                 <div class="filter-row">
-                    <div>
-                        <label for="monthFilter">Mês</label>
-                        <input id="monthFilter" type="month" />
+                    <div class="filters">
+                        <div class="date-range">
+                            <div class="date-range">
+                                <div class="field">
+                                    <label>Data inicial</label>
+                                    <input type="date" id="startDate" class="date-animated">
+                                </div>
+
+                                <div class="field">
+                                    <label>Data final</label>
+                                    <input type="date" id="endDate" class="date-animated">
+                                </div>
+
+                                <button id="btnApplyFilter" class="btn btn-primary">Aplicar</button>
+                            </div>
                     </div>
                     <button id="btnRefresh" class="btn btn-light">Atualizar</button>
                 </div>
