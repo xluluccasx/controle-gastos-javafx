@@ -26,6 +26,7 @@ const categoryEl = document.getElementById("category");
 const amountEl = document.getElementById("amount");
 const dateEl = document.getElementById("date");
 const descriptionEl = document.getElementById("description");
+const receiptFileEl = document.getElementById("receiptFile");
 
 const kpiIncome = document.getElementById("kpiIncome");
 const kpiExpense = document.getElementById("kpiExpense");
@@ -148,7 +149,9 @@ async function onForgotPassword() {
 async function onLogout() {
   try {
     await signOut();
-    window.location.href = "login.html";
+    window.location.replace = "login.html";
+    alert("teste sair")
+
   } catch (err) {
     console.error("Erro ao sair:", err);
   }
@@ -178,6 +181,69 @@ async function onAddTransaction() {
     date
   };
 
+  // 1. INSERE TRANSAÇÃO
+  const { data, error } = await supabase
+    .from(TABLE_NAME)
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    setTxError(`Erro ao salvar: ${error.message}`);
+    return;
+  }
+
+  // 2. UPLOAD DO COMPROVANTE (se existir)
+  const file = document.getElementById("receiptFile")?.files[0];
+
+  if (file) {
+    const ext = file.name.split(".").pop();
+    const filePath = `${session.user.id}/${data.id}/comprovante.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("receipts")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: true
+      });
+
+    if (uploadError) {
+      setTxError("Lançamento salvo, mas erro ao enviar comprovante: " + uploadError.message);
+      return;
+    }
+
+    // 3. ATUALIZA CAMPO receipt_path
+    const { error: updateError } = await supabase
+      .from(TABLE_NAME)
+      .update({ receipt_path: filePath })
+      .eq("id", data.id);
+
+    if (updateError) {
+      setTxError("Comprovante enviado, mas erro ao vincular: " + updateError.message);
+      return;
+    }
+  }
+
+  // 4. SUCESSO
+  setTxSuccess("Lançamento salvo com sucesso!");
+
+  amountEl.value = "";
+  descriptionEl.value = "";
+  dateEl.value = new Date().toISOString().slice(0, 10);
+  document.getElementById("receiptFile").value = "";
+
+  await loadTransactions();
+}
+
+  const payload = {
+    user_id: session.user.id,
+    type: typeEl.value,
+    amount,
+    category: categoryEl.value,
+    description: descriptionEl.value.trim() || null,
+    date
+  };
+
   const { error } = await supabase
     .from(TABLE_NAME)
     .insert(payload);
@@ -193,6 +259,19 @@ async function onAddTransaction() {
   dateEl.value = todayISO();
 
   await loadTransactions();
+}
+
+async function openReceipt(path) {
+  const { data, error } = await supabase.storage
+    .from("receipts")
+    .createSignedUrl(path, 60);
+
+  if (error) {
+    alert("Erro ao abrir comprovante: " + error.message);
+    return;
+  }
+
+  window.open(data.signedUrl, "_blank");
 }
 
 async function loadTransactions() {
