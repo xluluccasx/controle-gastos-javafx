@@ -153,9 +153,10 @@ async function onLogin() {
 
   const email = emailEl.value.trim();
   const password = passwordEl.value.trim();
+  showToast("Login realizado!");
 
   if (!email || !password) {
-    setAuthError("Preencha email e senha.");
+    showToast("Preencha o Email!","error");
     return;
   }
 
@@ -170,9 +171,6 @@ async function onLogin() {
       return;
     }
 
-    console.log("login ok");
-
-    // 🔥 FORÇA UI (não depende do Supabase)
     authSection.classList.add("hidden");
     dashboardSection.classList.remove("hidden");
     userBox.classList.remove("hidden");
@@ -235,8 +233,7 @@ async function onLogout() {
     });
 
     sessionStorage.clear();
-
-    console.log("sessão limpa manualmente");
+    showToast("Logout realizado!","error");
 
     animateLogout();
 
