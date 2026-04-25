@@ -27,6 +27,8 @@ const amountEl = document.getElementById("amount");
 const dateEl = document.getElementById("date");
 const descriptionEl = document.getElementById("description");
 const receiptFileEl = document.getElementById("receiptFile");
+const btnExportPdf = document.getElementById("btnExportPdf");
+btnExportPdf.addEventListener("click", exportPdf);
 
 const kpiIncome = document.getElementById("kpiIncome");
 const kpiExpense = document.getElementById("kpiExpense");
@@ -35,6 +37,7 @@ const transactionsTable = document.getElementById("transactionsTable");
 
 let pieChart;
 let barChart;
+let currentTransactions = [];
 
 const categoryLabels = {
   ALIMENTACAO: "Alimentação",
@@ -296,6 +299,7 @@ async function loadTransactions() {
   }
 
   renderTable(data || []);
+  currentTransactions = data || [];
   updateKpisAndCharts(data || []);
 }
 
@@ -501,4 +505,40 @@ function setTxError(msg) {
 function setTxSuccess(msg) {
   txStatus.style.color = "#0b6b2b";
   txStatus.textContent = msg;
+}
+
+function exportPdf() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+
+  const income = currentTransactions
+    .filter(t => t.type === "INCOME")
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  const expense = currentTransactions
+    .filter(t => t.type === "EXPENSE")
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+
+  doc.setFontSize(16);
+  doc.text("Relatório de Controle de Gastos", 14, 18);
+
+  doc.setFontSize(11);
+  doc.text(`Mês: ${monthFilter.value}`, 14, 28);
+  doc.text(`Receitas: ${formatMoney(income)}`, 14, 36);
+  doc.text(`Despesas: ${formatMoney(expense)}`, 14, 44);
+  doc.text(`Saldo: ${formatMoney(income - expense)}`, 14, 52);
+
+  doc.autoTable({
+    startY: 62,
+    head: [["Data", "Tipo", "Categoria", "Valor", "Descrição"]],
+    body: currentTransactions.map(t => [
+      formatDate(t.date),
+      typeLabels[t.type] || t.type,
+      categoryLabels[t.category] || t.category,
+      formatMoney(Number(t.amount)),
+      t.description || ""
+    ])
+  });
+
+  doc.save(`relatorio-gastos-${monthFilter.value}.pdf`);
 }
