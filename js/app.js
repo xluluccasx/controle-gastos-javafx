@@ -152,9 +152,7 @@ async function onForgotPassword() {
 async function onLogout() {
   try {
     await signOut();
-    window.location.replace = "login.html";
-    alert("teste sair")
-
+    window.location.reload(); // ✔ reload em vez de redirect
   } catch (err) {
     console.error("Erro ao sair:", err);
   }
@@ -184,7 +182,6 @@ async function onAddTransaction() {
     date
   };
 
-  // 1. INSERE TRANSAÇÃO
   const { data, error } = await supabase
     .from(TABLE_NAME)
     .insert(payload)
@@ -196,7 +193,6 @@ async function onAddTransaction() {
     return;
   }
 
-  // 2. UPLOAD DO COMPROVANTE (se existir)
   const file = document.getElementById("receiptFile")?.files[0];
 
   if (file) {
@@ -211,55 +207,29 @@ async function onAddTransaction() {
       });
 
     if (uploadError) {
-      setTxError("Lançamento salvo, mas erro ao enviar comprovante: " + uploadError.message);
+      setTxError("Salvou, mas erro no comprovante: " + uploadError.message);
       return;
     }
 
-    // 3. ATUALIZA CAMPO receipt_path
     const { error: updateError } = await supabase
       .from(TABLE_NAME)
       .update({ receipt_path: filePath })
       .eq("id", data.id);
 
     if (updateError) {
-      setTxError("Comprovante enviado, mas erro ao vincular: " + updateError.message);
+      setTxError("Upload feito, mas erro ao vincular: " + updateError.message);
       return;
     }
   }
 
-  // 4. SUCESSO
-  setTxSuccess("Lançamento salvo com sucesso!");
+  setTxSuccess("Lançamento salvo!");
 
   amountEl.value = "";
   descriptionEl.value = "";
   dateEl.value = new Date().toISOString().slice(0, 10);
-  document.getElementById("receiptFile").value = "";
 
-  await loadTransactions();
-}
-
-  const payload = {
-    user_id: session.user.id,
-    type: typeEl.value,
-    amount,
-    category: categoryEl.value,
-    description: descriptionEl.value.trim() || null,
-    date
-  };
-
-  const { error } = await supabase
-    .from(TABLE_NAME)
-    .insert(payload);
-
-  if (error) {
-    setTxError(`Erro ao salvar: ${error.message}`);
-    return;
-  }
-
-  setTxSuccess("Lançamento salvo com sucesso.");
-  amountEl.value = "";
-  descriptionEl.value = "";
-  dateEl.value = todayISO();
+  const fileInput = document.getElementById("receiptFile");
+  if (fileInput) fileInput.value = "";
 
   await loadTransactions();
 }
@@ -317,9 +287,11 @@ function renderTable(list) {
       <td>${tx.description ?? ""}</td>
       <td>${formatDateTimeLocal(tx.created_at)}</td>
       <td>
+        <button class="btn btn-danger action-delete" data-id="${tx.id}">Excluir</button>
+
         ${
           tx.receipt_path
-            ? `<button class="btn btn-light" onclick="openReceipt('${tx.receipt_path}')">Ver</button>`
+            ? `<button class="btn btn-light action-view" data-path="${tx.receipt_path}">Ver</button>`
             : ""
         }
       </td>
@@ -331,14 +303,46 @@ function renderTable(list) {
   document.querySelectorAll(".action-delete").forEach(btn => {
     btn.addEventListener("click", async (e) => {
       const id = e.target.dataset.id;
-      const ok = confirm("Deseja excluir este lançamento?");
-      if (!ok) return;
+
+      if (!confirm("Deseja excluir este lançamento?")) return;
+
       await deleteTransaction(id);
+    });
+  });
+
+  document.querySelectorAll(".action-view").forEach(btn => {
+    btn.addEventListener("click", async (e) => {
+      const path = e.target.dataset.path;
+      await openReceipt(path);
     });
   });
 }
 
 async function deleteTransaction(id) {
+  // 1. buscar o receipt_path antes de deletar
+  const { data: tx, error: fetchError } = await supabase
+    .from(TABLE_NAME)
+    .select("receipt_path")
+    .eq("id", id)
+    .single();
+
+  if (fetchError) {
+    setTxError("Erro ao buscar comprovante: " + fetchError.message);
+    return;
+  }
+
+  // 2. apagar arquivo do storage (se existir)
+  if (tx?.receipt_path) {
+    const { error: storageError } = await supabase.storage
+      .from("receipts")
+      .remove([tx.receipt_path]);
+
+    if (storageError) {
+      console.warn("Erro ao apagar comprovante:", storageError.message);
+    }
+  }
+
+  // 3. apagar do banco
   const { error } = await supabase
     .from(TABLE_NAME)
     .delete()
