@@ -19,7 +19,6 @@ const btnLogout = document.getElementById("btnLogout");
 const btnRefresh = document.getElementById("btnRefresh");
 const btnAddTransaction = document.getElementById("btnAddTransaction");
 
-const monthFilter = document.getElementById("monthFilter");
 const startDateEl = document.getElementById("startDate");
 const endDateEl = document.getElementById("endDate");
 const btnApplyFilter = document.getElementById("btnApplyFilter");
@@ -634,6 +633,18 @@ function setTxSuccess(msg) {
 function exportPdf() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
+  const start = startDateEl.value;
+  const end = endDateEl.value;
+  const periodLabel = start && end
+    ? `${formatDate(start)} a ${formatDate(end)}`
+    : start
+      ? `A partir de ${formatDate(start)}`
+      : end
+        ? `Até ${formatDate(end)}`
+        : "Todos";
+  const filePeriod = start || end
+    ? `${start || "inicio"}-${end || "fim"}`
+    : "todos";
 
   const income = currentTransactions
     .filter(t => t.type === "INCOME")
@@ -647,7 +658,7 @@ function exportPdf() {
   doc.text("Relatório de Controle de Gastos", 14, 18);
 
   doc.setFontSize(11);
-  doc.text(`Mês: ${monthFilter.value}`, 14, 28);
+  doc.text(`Período: ${periodLabel}`, 14, 28);
   doc.text(`Receitas: ${formatMoney(income)}`, 14, 36);
   doc.text(`Despesas: ${formatMoney(expense)}`, 14, 44);
   doc.text(`Saldo: ${formatMoney(income - expense)}`, 14, 52);
@@ -664,7 +675,7 @@ function exportPdf() {
     ])
   });
 
-  doc.save(`relatorio-gastos-${monthFilter.value}.pdf`);
+  doc.save(`relatorio-gastos-${filePeriod}.pdf`);
 }
 
 function animateLogout() {
