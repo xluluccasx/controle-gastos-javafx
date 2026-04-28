@@ -50,6 +50,11 @@ let barChart;
 let currentTransactions = [];
 let editingId = null;
 let categoryHiddenChanges = {};
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+const LAST_ACTIVITY_KEY = "controle-gastos:lastActivityAt";
+const ACTIVITY_EVENTS = ["click", "keydown", "mousemove", "scroll", "touchstart"];
+let lastActivityWrite = 0;
+let expiringSession = false;
 
 const categoryLabels = {
   ALIMENTACAO: "Alimentação",
@@ -81,6 +86,8 @@ async function init() {
   }
   dateEl.value = todayISO();
 
+  clearLegacyLocalStorageSession();
+  setupInactivityControl();
   await applySession();
 
   btnLogin.addEventListener("click", onLogin);
@@ -120,7 +127,11 @@ btnBackDashboard.addEventListener("click", async () => {
 });
   btnApplyFilter.addEventListener("click", () => {animateRangeChange(loadTransactions);});
 
-  supabase.auth.onAuthStateChange(async () => {await applySession();});
+  supabase.auth.onAuthStateChange(async () => {
+    if (!expiringSession) {
+      await applySession();
+    }
+  });
 }
 
 async function applySession() {
@@ -128,6 +139,12 @@ async function applySession() {
   const session = await getSession();
 
   if (session?.user) {
+    if (isSessionExpired()) {
+      await expireSession();
+      return;
+    }
+
+    markActivity();
     authSection.classList.add("hidden");
     dashboardSection.classList.remove("hidden");
     userBox.classList.remove("hidden");
@@ -170,6 +187,7 @@ async function onLogin() {
       return;
     }
 
+    markActivity(true);
     authSection.classList.add("hidden");
     dashboardSection.classList.remove("hidden");
     userBox.classList.remove("hidden");
@@ -223,15 +241,7 @@ async function onLogout() {
   console.log("Button Pressed");
 
   try {
-    supabase.auth.signOut().catch(() => {});
-
-    Object.keys(localStorage).forEach(key => {
-      if (key.startsWith("sb-")) {
-        localStorage.removeItem(key);
-      }
-    });
-
-    sessionStorage.clear();
+    clearPersistedSession();
     showToast("Logout realizado!","error");
 
     animateLogout();
@@ -239,6 +249,87 @@ async function onLogout() {
   } catch (err) {
     console.error(err);
   }
+}
+
+function setupInactivityControl() {
+  ACTIVITY_EVENTS.forEach(eventName => {
+    window.addEventListener(eventName, async () => {
+      if (!dashboardSection.classList.contains("hidden")) {
+        if (isSessionExpired()) {
+          await expireSession();
+          return;
+        }
+
+        markActivity();
+      }
+    }, { passive: true });
+  });
+
+  setInterval(async () => {
+    if (!dashboardSection.classList.contains("hidden") && isSessionExpired()) {
+      await expireSession();
+    }
+  }, 60 * 1000);
+}
+
+function markActivity(force = false) {
+  const now = Date.now();
+
+  if (!force && now - lastActivityWrite < 15 * 1000) {
+    return;
+  }
+
+  lastActivityWrite = now;
+  sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
+}
+
+function isSessionExpired() {
+  const lastActivityAt = Number(sessionStorage.getItem(LAST_ACTIVITY_KEY));
+
+  if (!lastActivityAt) {
+    return false;
+  }
+
+  return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
+}
+
+function expireSession() {
+  if (expiringSession) {
+    return;
+  }
+
+  expiringSession = true;
+
+  try {
+    clearPersistedSession();
+    authSection.classList.remove("hidden");
+    dashboardSection.classList.add("hidden");
+    userBox.classList.add("hidden");
+    userEmail.textContent = "";
+    setAuthError("Sessao expirada por inatividade. Faca login novamente.");
+  } finally {
+    expiringSession = false;
+  }
+}
+
+function clearPersistedSession() {
+  supabase.auth.signOut().catch(() => {});
+
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith("sb-") || key === LAST_ACTIVITY_KEY) {
+      localStorage.removeItem(key);
+    }
+  });
+
+  sessionStorage.clear();
+}
+
+function clearLegacyLocalStorageSession() {
+  Object.keys(localStorage).forEach(key => {
+    if (key.startsWith("sb-") || key === LAST_ACTIVITY_KEY) {
+      localStorage.removeItem(key);
+    }
+  });
 }
 
 async function onAddTransaction() {
@@ -681,9 +772,12 @@ function exportPdf() {
 function animateLogout() {
   const dashboard = document.getElementById("dashboardSection");
   const auth = document.getElementById("authSection");
+  const user = document.getElementById("userBox");
 
   // aplica fade-out no dashboard
   dashboard.classList.add("fade-out");
+  user?.classList.add("hidden");
+  userEmail.textContent = "";
 
   setTimeout(() => {
     // esconde dashboard
