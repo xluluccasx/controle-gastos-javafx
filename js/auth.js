@@ -1,9 +1,13 @@
 import { supabase } from "./supabase.js";
+import { AUTH_REDIRECT_URL } from "./config.js";
 
 export async function signUp(email, password) {
   const { data, error } = await supabase.auth.signUp({
     email,
-    password
+    password,
+    options: {
+      emailRedirectTo: AUTH_REDIRECT_URL
+    }
   });
 
   if (error) throw new Error(mapAuthError(error));
@@ -32,7 +36,9 @@ export async function getSession() {
 }
 
 export async function forgotPassword(email) {
-  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: AUTH_REDIRECT_URL
+  });
   if (error) throw new Error(mapAuthError(error));
 }
 
