@@ -1100,3 +1100,8 @@ function showToast(message, type = "success") {
     toast.classList.add("hide");
   }, 2500);
 }
+
+if (window.location.hash.includes("access_token")) {
+
+    window.location.replace("/controle-gastos-javafx/");
+  }
