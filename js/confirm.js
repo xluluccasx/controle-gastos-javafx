@@ -9,23 +9,29 @@ async function confirmAuthRedirect() {
   setStatus("Confirmando acesso...");
 
   try {
-    const code = new URLSearchParams(window.location.search).get("code");
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    const token = params.get("token") || params.get("token_hash");
+    const type = params.get("type") || "email";
 
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) throw error;
+    } else if (token) {
+      const { error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type
+      });
+
+      if (error) throw error;
+    } else {
+      throw new Error("Link de confirmacao invalido ou incompleto.");
     }
 
-    const { data, error } = await supabase.auth.getSession();
+    const { error } = await supabase.auth.getSession();
     if (error) throw error;
 
-    if (data.session) {
-      setStatus("Acesso confirmado. Redirecionando...");
-      window.location.replace(loginUrl.href);
-      return;
-    }
-
-    setStatus("Link confirmado. Volte para a tela de login.");
+    setStatus("Email confirmado. Redirecionando para o login...");
     window.location.replace(loginUrl.href);
   } catch (error) {
     console.error(error);
