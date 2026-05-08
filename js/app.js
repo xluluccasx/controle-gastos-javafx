@@ -1240,15 +1240,30 @@ async function addCategory() {
     return;
   }
 
-  const { error } = await supabase.from("user_categories").insert({
+  const { data: category, error: categoryError } = await supabase
+    .from("categories")
+    .insert({
+      name,
+      type,
+      is_default: false
+    })
+    .select()
+    .single();
+
+  if (categoryError) {
+    setCategoryError(`Erro ao salvar categoria: ${categoryError.message}`);
+    return;
+  }
+
+  const { error: linkError } = await supabase.from("user_categories").insert({
     user_id: session.user.id,
-    name,
-    type,
+    category_id: category.id,
     hidden: false
   });
 
-  if (error) {
-    setCategoryError(`Erro ao salvar categoria: ${error.message}`);
+  if (linkError) {
+    await supabase.from("categories").delete().eq("id", category.id);
+    setCategoryError(`Erro ao vincular categoria ao usuario: ${linkError.message}`);
     return;
   }
 
@@ -1265,12 +1280,12 @@ async function loadCategoryList() {
     return;
   }
 
-  const { data: defaultCategories, error: defaultError } = await supabase
+  const { data: categories, error: categoriesError } = await supabase
     .from("categories")
     .select("*");
 
-  if (defaultError) {
-    setCategoryError(`Erro ao carregar categorias padrao: ${defaultError.message}`);
+  if (categoriesError) {
+    setCategoryError(`Erro ao carregar categorias: ${categoriesError.message}`);
     return;
   }
 
@@ -1280,52 +1295,43 @@ async function loadCategoryList() {
     .eq("user_id", session.user.id);
 
   if (userError) {
-    setCategoryError(`Erro ao carregar categorias do usuario: ${userError.message}`);
+    setCategoryError(`Erro ao carregar configuracoes: ${userError.message}`);
     return;
   }
 
+  const userConfigByCategoryId = {};
+  (userCategories || []).forEach(userCat => {
+    userConfigByCategoryId[userCat.category_id] = userCat;
+  });
+
   categoryList.innerHTML = "";
 
-  const userConfigByCategoryId = {};
-  const customCategories = [];
+  (categories || []).forEach(cat => {
+    const userConfig = userConfigByCategoryId[cat.id];
+    const isOwnCustomCategory = !cat.is_default && Boolean(userConfig);
 
-  (userCategories || []).forEach(userCat => {
-    if (userCat.category_id) {
-      userConfigByCategoryId[userCat.category_id] = userCat;
+    if (!cat.is_default && !isOwnCustomCategory) {
       return;
     }
 
-    customCategories.push(userCat);
-  });
-
-  (defaultCategories || []).forEach(cat => {
-    const userConfig = userConfigByCategoryId[cat.id];
     const hidden = userConfig?.hidden || false;
     const li = document.createElement("li");
 
     li.className = "category-item";
     li.innerHTML = `
-      <span>${cat.name} (${typeLabels[cat.type] || cat.type}) *</span>
+      <span>${cat.name} (${typeLabels[cat.type] || cat.type}) ${cat.is_default ? "*" : ""}</span>
       <div>
-        <label class="inline-check">
-          <input type="checkbox" data-hide="${cat.id}" ${hidden ? "checked" : ""}>
-          Ocultar
-        </label>
-      </div>
-    `;
-
-    categoryList.appendChild(li);
-  });
-
-  customCategories.forEach(cat => {
-    const li = document.createElement("li");
-
-    li.className = "category-item";
-    li.innerHTML = `
-      <span>${cat.name} (${typeLabels[cat.type] || cat.type})</span>
-      <div>
-        <button class="btn btn-light" data-user-edit="${cat.id}">Editar</button>
-        <button class="btn btn-danger" data-user-delete="${cat.id}">Excluir</button>
+        ${
+          cat.is_default
+            ? `<label class="inline-check">
+                <input type="checkbox" data-hide="${cat.id}" ${hidden ? "checked" : ""}>
+                Ocultar
+              </label>`
+            : `
+              <button class="btn btn-light" data-user-edit="${cat.id}">Editar</button>
+              <button class="btn btn-danger" data-user-delete="${cat.id}">Excluir</button>
+            `
+        }
       </div>
     `;
 
@@ -1334,6 +1340,12 @@ async function loadCategoryList() {
 }
 
 async function onCategoryListClick(e) {
+  const session = await getSession();
+  if (!session?.user) {
+    window.location.href = "index.html";
+    return;
+  }
+
   const edit = e.target.dataset.userEdit;
   if (edit) {
     const name = prompt("Novo nome:");
@@ -1341,11 +1353,23 @@ async function onCategoryListClick(e) {
       return;
     }
 
-    const { error } = await supabase
+    const { data: ownership } = await supabase
       .from("user_categories")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("category_id", edit)
+      .maybeSingle();
+
+    if (!ownership) {
+      setCategoryError("Voce so pode editar categorias criadas por voce.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("categories")
       .update({ name })
       .eq("id", edit)
-      .eq("user_id", (await getSession()).user.id);
+      .eq("is_default", false);
 
     if (error) {
       setCategoryError(`Erro ao editar categoria: ${error.message}`);
@@ -1362,14 +1386,37 @@ async function onCategoryListClick(e) {
       return;
     }
 
-    const { error } = await supabase
+    const { data: ownership } = await supabase
+      .from("user_categories")
+      .select("id")
+      .eq("user_id", session.user.id)
+      .eq("category_id", del)
+      .maybeSingle();
+
+    if (!ownership) {
+      setCategoryError("Voce so pode excluir categorias criadas por voce.");
+      return;
+    }
+
+    const { error: unlinkError } = await supabase
       .from("user_categories")
       .delete()
-      .eq("id", del)
-      .eq("user_id", (await getSession()).user.id);
+      .eq("user_id", session.user.id)
+      .eq("category_id", del);
 
-    if (error) {
-      setCategoryError(`Erro ao excluir categoria: ${error.message}`);
+    if (unlinkError) {
+      setCategoryError(`Erro ao desvincular categoria: ${unlinkError.message}`);
+      return;
+    }
+
+    const { error: deleteError } = await supabase
+      .from("categories")
+      .delete()
+      .eq("id", del)
+      .eq("is_default", false);
+
+    if (deleteError) {
+      setCategoryError(`Erro ao excluir categoria: ${deleteError.message}`);
       return;
     }
 
@@ -1396,6 +1443,7 @@ async function saveCategoryChanges() {
   }
 
   for (const [categoryId, hidden] of Object.entries(categoryHiddenChanges)) {
+
     await supabase
       .from("user_categories")
       .upsert(
@@ -1445,38 +1493,26 @@ async function loadCategoryOptions() {
   }
 
   const userMap = {};
-  const customCategories = [];
-
   (userCats || []).forEach(u => {
-    if (u.category_id) {
-      userMap[u.category_id] = u;
-      return;
-    }
-
-    customCategories.push(u);
+    userMap[u.category_id] = u;
   });
 
   const selectedType = typeEl.value;
   categoryEl.innerHTML = "";
 
   (categories || []).forEach(cat => {
+    const userConfig = userMap[cat.id];
+    const isOwnCustomCategory = !cat.is_default && Boolean(userConfig);
+
     if (cat.type !== selectedType) {
       return;
     }
 
-    const userConfig = userMap[cat.id];
-    if (userConfig?.hidden) {
+    if (!cat.is_default && !isOwnCustomCategory) {
       return;
     }
 
-    const option = document.createElement("option");
-    option.value = cat.name;
-    option.textContent = cat.name;
-    categoryEl.appendChild(option);
-  });
-
-  customCategories.forEach(cat => {
-    if (cat.hidden || cat.type !== selectedType) {
+    if (userConfig?.hidden) {
       return;
     }
 
