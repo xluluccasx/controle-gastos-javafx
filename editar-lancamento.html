@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Editar Lancamento - Controle de Gastos</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <div>
+            <h1>Controle de Gastos</h1>
+            <p class="subtitle">Editar lancamento</p>
+        </div>
+        <div class="user-box">
+            <a class="btn btn-light nav-link" href="dashboard.html">Voltar ao menu</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="card auth-card">
+            <h2>Editar lancamento</h2>
+
+            <div class="form-grid">
+                <div>
+                    <label for="type">Tipo</label>
+                    <select id="type">
+                        <option value="INCOME">Receita</option>
+                        <option value="EXPENSE">Despesa</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="category">Categoria</label>
+                    <select id="category"></select>
+                </div>
+
+                <div>
+                    <label for="amount">Valor</label>
+                    <input id="amount" type="number" step="0.01" min="0.01" placeholder="0,00" />
+                </div>
+
+                <div>
+                    <label for="date">Data</label>
+                    <input id="date" type="date" />
+                </div>
+            </div>
+
+            <div>
+                <label for="description">Descricao</label>
+                <input id="description" type="text" placeholder="Descricao do lancamento" />
+            </div>
+
+            <div id="currentReceiptBox" class="receipt-box hidden">
+                <label>Comprovante atual</label>
+                <div class="actions">
+                    <button id="btnViewCurrentReceipt" class="btn btn-light">Ver comprovante</button>
+                </div>
+            </div>
+
+            <div>
+                <label for="receiptFile">Alterar comprovante</label>
+                <input id="receiptFile" type="file" accept="image/*,.pdf" />
+            </div>
+
+            <div class="actions">
+                <button id="btnUpdateTransaction" class="btn btn-primary">Salvar alteracoes</button>
+                <a class="btn btn-light nav-link" href="dashboard.html">Cancelar</a>
+            </div>
+
+            <p id="txStatus" class="status"></p>
+        </section>
+    </main>
+</div>
+<div id="toast" class="toast"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

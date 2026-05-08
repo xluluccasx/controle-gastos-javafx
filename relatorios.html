@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Relatorios - Controle de Gastos</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <div>
+            <h1>Controle de Gastos</h1>
+            <p class="subtitle">Relatorios PDF</p>
+        </div>
+        <div class="user-box">
+            <a class="btn btn-light nav-link" href="dashboard.html">Voltar ao menu</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="card">
+            <h2>Exportar relatorio</h2>
+
+            <div class="form-grid">
+                <div>
+                    <label for="reportType">Tipo de relatorio</label>
+                    <select id="reportType">
+                        <option value="summary">Resumo financeiro do periodo</option>
+                        <option value="comparison">Comparacao entre periodos</option>
+                        <option value="category">Gastos por categoria</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="report-block">
+                <h3>Periodo principal</h3>
+                <div class="form-grid">
+                    <div>
+                        <label for="reportStartDate">Data inicial</label>
+                        <input type="date" id="reportStartDate" class="date-animated">
+                    </div>
+                    <div>
+                        <label for="reportEndDate">Data final</label>
+                        <input type="date" id="reportEndDate" class="date-animated">
+                    </div>
+                </div>
+            </div>
+
+            <div id="comparisonPeriodFields" class="report-block hidden">
+                <h3>Periodo para comparacao</h3>
+                <div class="form-grid">
+                    <div>
+                        <label for="compareStartDate">Data inicial</label>
+                        <input type="date" id="compareStartDate" class="date-animated">
+                    </div>
+                    <div>
+                        <label for="compareEndDate">Data final</label>
+                        <input type="date" id="compareEndDate" class="date-animated">
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="btnPreviewReport" class="btn btn-primary">Visualizar relatorio</button>
+                <button id="btnDownloadReport" class="btn btn-secondary" disabled>Baixar PDF</button>
+            </div>
+
+            <p id="reportStatus" class="status"></p>
+        </section>
+
+        <section id="reportPreviewSection" class="card report-preview hidden">
+            <h2>Pre-visualizacao</h2>
+            <div id="reportPreview"></div>
+        </section>
+    </main>
+</div>
+<div id="toast" class="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

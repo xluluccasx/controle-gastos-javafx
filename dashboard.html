@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Controle de Gastos</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <div>
+            <h1>Controle de Gastos</h1>
+            <p class="subtitle">Dashboard</p>
+        </div>
+        <div id="userBox" class="user-box">
+            <span id="userEmail"></span>
+            <button id="btnLogout" class="btn btn-danger">Sair</button>
+        </div>
+    </header>
+
+    <main id="dashboardSection">
+        <div class="dashboard-header card">
+            <div class="filter-row">
+                <div class="date-range">
+                    <div class="field">
+                        <label for="startDate">Data inicial</label>
+                        <input type="date" id="startDate" class="date-animated">
+                    </div>
+
+                    <div class="field">
+                        <label for="endDate">Data final</label>
+                        <input type="date" id="endDate" class="date-animated">
+                    </div>
+
+                    <button id="btnApplyFilter" class="btn btn-primary">Aplicar</button>
+                    <button id="btnRefresh" class="btn btn-light">Atualizar</button>
+                    <a class="btn btn-light nav-link" href="#lancamentos">Ver lancamentos</a>
+                    <a class="btn btn-secondary nav-link" href="lancamento.html">Novo lancamento</a>
+                    <a class="btn btn-light nav-link" href="categorias.html">Gerenciar categorias</a>
+                    <a class="btn btn-light nav-link" href="relatorios.html">Relatorios PDF</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="kpis">
+            <div class="card kpi">
+                <h3>Receitas</h3>
+                <p id="kpiIncome">R$ 0,00</p>
+            </div>
+            <div class="card kpi">
+                <h3>Despesas</h3>
+                <p id="kpiExpense">R$ 0,00</p>
+            </div>
+            <div class="card kpi">
+                <h3>Saldo</h3>
+                <p id="kpiBalance">R$ 0,00</p>
+            </div>
+        </div>
+
+        <div class="content-grid single-column">
+            <section class="card">
+                <h2>Graficos</h2>
+                <div class="chart-wrap">
+                    <canvas id="pieChart"></canvas>
+                </div>
+                <div class="chart-wrap">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <section id="lancamentos" class="card">
+            <h2>Lancamentos do periodo</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Tipo</th>
+                        <th>Categoria</th>
+                        <th>Valor</th>
+                        <th>Descricao</th>
+                        <th>Cadastro</th>
+                        <th>Acao</th>
+                    </tr>
+                    </thead>
+                    <tbody id="transactionsTable"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+<div id="toast" class="toast"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
