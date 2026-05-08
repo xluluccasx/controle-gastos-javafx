@@ -48,25 +48,46 @@
             <div class="card kpi">
                 <h3>Receitas</h3>
                 <p id="kpiIncome">R$ 0,00</p>
+                <span id="kpiIncomeDelta" class="kpi-delta">Periodo anterior: R$ 0,00</span>
             </div>
             <div class="card kpi">
                 <h3>Despesas</h3>
                 <p id="kpiExpense">R$ 0,00</p>
+                <span id="kpiExpenseDelta" class="kpi-delta">Periodo anterior: R$ 0,00</span>
             </div>
             <div class="card kpi">
                 <h3>Saldo</h3>
                 <p id="kpiBalance">R$ 0,00</p>
+                <span id="kpiBalanceDelta" class="kpi-delta">Periodo anterior: R$ 0,00</span>
             </div>
         </div>
 
-        <div class="content-grid single-column">
-            <section class="card">
-                <h2>Graficos</h2>
+        <section class="card dashboard-analysis">
+            <h2>Analise do periodo</h2>
+            <ul id="dashboardInsights" class="insight-list">
+                <li>Carregando analise...</li>
+            </ul>
+        </section>
+
+        <div class="content-grid dashboard-charts">
+            <section class="card chart-card">
+                <h2>Top categorias de despesa</h2>
                 <div class="chart-wrap">
-                    <canvas id="pieChart"></canvas>
+                    <canvas id="categoryBarChart"></canvas>
                 </div>
+            </section>
+
+            <section class="card chart-card">
+                <h2>Receitas x despesas</h2>
                 <div class="chart-wrap">
                     <canvas id="barChart"></canvas>
+                </div>
+            </section>
+
+            <section class="card chart-card chart-card-wide">
+                <h2>Evolucao do saldo</h2>
+                <div class="chart-wrap chart-wrap-large">
+                    <canvas id="balanceLineChart"></canvas>
                 </div>
             </section>
         </div>

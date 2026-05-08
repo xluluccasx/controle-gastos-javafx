@@ -6,8 +6,9 @@ const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 const LAST_ACTIVITY_KEY = "controle-gastos:lastActivityAt";
 const ACTIVITY_EVENTS = ["click", "keydown", "mousemove", "scroll", "touchstart"];
 
-let pieChart;
+let categoryBarChart;
 let barChart;
+let balanceLineChart;
 let currentTransactions = [];
 let currentReportPreview = null;
 let currentEditTransaction = null;
@@ -556,10 +557,35 @@ async function loadTransactions() {
   const start = byId("startDate")?.value;
   const end = byId("endDate")?.value;
 
+  const { data, error } = await queryTransactions(session.user.id, start, end);
+
+  if (error) {
+    setTxError(`Erro ao carregar: ${error.message}`);
+    return;
+  }
+
+  const previousPeriod = getPreviousPeriod(start, end);
+  const { data: previousData, error: previousError } = await queryTransactions(
+    session.user.id,
+    previousPeriod.start,
+    previousPeriod.end
+  );
+
+  if (previousError) {
+    setTxError(`Erro ao carregar comparativo: ${previousError.message}`);
+    return;
+  }
+
+  currentTransactions = data || [];
+  renderTable(currentTransactions);
+  updateDashboard(currentTransactions, previousData || [], { start, end }, previousPeriod);
+}
+
+async function queryTransactions(userId, start, end) {
   let query = supabase
     .from(TABLE_NAME)
     .select("*")
-    .eq("user_id", session.user.id)
+    .eq("user_id", userId)
     .order("date", { ascending: false });
 
   if (start) {
@@ -570,16 +596,7 @@ async function loadTransactions() {
     query = query.lte("date", end);
   }
 
-  const { data, error } = await query;
-
-  if (error) {
-    setTxError(`Erro ao carregar: ${error.message}`);
-    return;
-  }
-
-  currentTransactions = data || [];
-  renderTable(currentTransactions);
-  updateKpisAndCharts(currentTransactions);
+  return await query;
 }
 
 function renderTable(list) {
@@ -670,7 +687,7 @@ async function deleteTransaction(id) {
   await loadTransactions();
 }
 
-function updateKpisAndCharts(list) {
+function updateDashboard(list, previousList, period, previousPeriod) {
   const kpiIncome = byId("kpiIncome");
   const kpiExpense = byId("kpiExpense");
   const kpiBalance = byId("kpiBalance");
@@ -679,56 +696,67 @@ function updateKpisAndCharts(list) {
     return;
   }
 
-  let income = 0;
-  let expense = 0;
-  const expenseByCategory = {};
+  const summary = summarizeTransactions(list);
+  const previousSummary = summarizeTransactions(previousList);
 
-  for (const tx of list) {
-    const value = Number(tx.amount || 0);
+  kpiIncome.textContent = formatMoney(summary.income);
+  kpiExpense.textContent = formatMoney(summary.expense);
+  kpiBalance.textContent = formatMoney(summary.balance);
 
-    if (tx.type === "INCOME") {
-      income += value;
-    } else {
-      expense += value;
-      expenseByCategory[tx.category] = (expenseByCategory[tx.category] || 0) + value;
-    }
-  }
+  updateKpiDelta("kpiIncomeDelta", summary.income, previousSummary.income, "periodo anterior");
+  updateKpiDelta("kpiExpenseDelta", summary.expense, previousSummary.expense, "periodo anterior", true);
+  updateKpiDelta("kpiBalanceDelta", summary.balance, previousSummary.balance, "periodo anterior");
 
-  kpiIncome.textContent = formatMoney(income);
-  kpiExpense.textContent = formatMoney(expense);
-  kpiBalance.textContent = formatMoney(income - expense);
-
-  renderPieChart(expenseByCategory);
-  renderBarChart(income, expense);
+  renderCategoryBarChart(summary.byCategory);
+  renderBarChart(summary.income, summary.expense);
+  renderBalanceLineChart(list, period);
+  renderDashboardInsights(summary, previousSummary, period, previousPeriod);
 }
 
-function renderPieChart(expenseByCategory) {
-  const canvas = byId("pieChart");
+function renderCategoryBarChart(expenseByCategory) {
+  const canvas = byId("categoryBarChart");
   if (!canvas || !window.Chart) {
     return;
   }
 
-  const entries = Object.entries(expenseByCategory).filter(([, value]) => value > 0);
+  const entries = Object.entries(expenseByCategory)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
 
-  if (pieChart) {
-    pieChart.destroy();
+  if (categoryBarChart) {
+    categoryBarChart.destroy();
   }
 
-  pieChart = new Chart(canvas, {
-    type: "pie",
+  categoryBarChart = new Chart(canvas, {
+    type: "bar",
     data: {
       labels: entries.map(([category]) => category),
       datasets: [{
-        data: entries.map(([, value]) => value)
+        label: "Despesas",
+        data: entries.map(([, value]) => value),
+        backgroundColor: "#2563eb"
       }]
     },
     options: {
+      indexAxis: "y",
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        title: {
-          display: true,
-          text: "Gastos por Categoria"
+        legend: {
+          display: false
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => formatMoney(Number(ctx.raw || 0))
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            callback: value => formatCompactMoney(Number(value))
+          }
         }
       }
     }
@@ -762,10 +790,239 @@ function renderBarChart(income, expense) {
         title: {
           display: true,
           text: "Totais por Tipo"
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${formatMoney(Number(ctx.raw || 0))}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: value => formatCompactMoney(Number(value))
+          }
         }
       }
     }
   });
+}
+
+function renderBalanceLineChart(list, period) {
+  const canvas = byId("balanceLineChart");
+  if (!canvas || !window.Chart) {
+    return;
+  }
+
+  const points = buildDailyBalancePoints(list, period.start, period.end);
+
+  if (balanceLineChart) {
+    balanceLineChart.destroy();
+  }
+
+  balanceLineChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: points.map(point => formatDate(point.date)),
+      datasets: [
+        {
+          label: "Receitas acumuladas",
+          data: points.map(point => point.income),
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.12)",
+          tension: 0.25
+        },
+        {
+          label: "Despesas acumuladas",
+          data: points.map(point => point.expense),
+          borderColor: "#dc2626",
+          backgroundColor: "rgba(220, 38, 38, 0.12)",
+          tension: 0.25
+        },
+        {
+          label: "Saldo acumulado",
+          data: points.map(point => point.balance),
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.12)",
+          tension: 0.25
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index"
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${formatMoney(Number(ctx.raw || 0))}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: value => formatCompactMoney(Number(value))
+          }
+        }
+      }
+    }
+  });
+}
+
+function updateKpiDelta(elementId, currentValue, previousValue, label, invertGood = false) {
+  const el = byId(elementId);
+  if (!el) {
+    return;
+  }
+
+  const diff = currentValue - previousValue;
+  const percent = variationPercent(currentValue, previousValue);
+  const isGood = invertGood ? diff <= 0 : diff >= 0;
+
+  el.classList.remove("delta-good", "delta-bad", "delta-neutral");
+  el.classList.add(diff === 0 ? "delta-neutral" : isGood ? "delta-good" : "delta-bad");
+  el.textContent = `${label}: ${formatMoney(previousValue)} | ${formatMoney(diff)} (${formatPercent(percent)})`;
+}
+
+function renderDashboardInsights(summary, previousSummary, period, previousPeriod) {
+  const list = byId("dashboardInsights");
+  if (!list) {
+    return;
+  }
+
+  const top = topCategory(summary.byCategory);
+  const expenseDiff = summary.expense - previousSummary.expense;
+  const balanceDiff = summary.balance - previousSummary.balance;
+  const days = getDateRange(period.start, period.end).length || 1;
+  const averageExpense = summary.expense / days;
+  const periodLabel = `${formatDate(period.start)} a ${formatDate(period.end)}`;
+  const previousLabel = `${formatDate(previousPeriod.start)} a ${formatDate(previousPeriod.end)}`;
+
+  const insights = [
+    `Periodo analisado: ${periodLabel}. Comparacao automatica com ${previousLabel}.`,
+    top
+      ? `Maior categoria de despesa: ${top.name}, com ${formatMoney(top.value)} (${formatPercentOfTotal(top.value, summary.expense)} das despesas).`
+      : "Nao ha despesas registradas por categoria neste periodo.",
+    expenseDiff > 0
+      ? `As despesas aumentaram ${formatMoney(expenseDiff)} em relacao ao periodo anterior.`
+      : expenseDiff < 0
+        ? `As despesas reduziram ${formatMoney(Math.abs(expenseDiff))} em relacao ao periodo anterior.`
+        : "As despesas ficaram iguais ao periodo anterior.",
+    balanceDiff >= 0
+      ? `O saldo melhorou ${formatMoney(Math.abs(balanceDiff))} frente ao periodo anterior.`
+      : `O saldo piorou ${formatMoney(Math.abs(balanceDiff))} frente ao periodo anterior.`,
+    `Media diaria de despesas no periodo: ${formatMoney(averageExpense)}.`
+  ];
+
+  list.innerHTML = insights.map(item => `<li>${item}</li>`).join("");
+}
+
+function buildDailyBalancePoints(list, start, end) {
+  const dates = getDateRange(start, end);
+  const byDate = {};
+
+  list.forEach(tx => {
+    if (!byDate[tx.date]) {
+      byDate[tx.date] = { income: 0, expense: 0 };
+    }
+
+    const value = Number(tx.amount || 0);
+    if (tx.type === "INCOME") {
+      byDate[tx.date].income += value;
+    } else {
+      byDate[tx.date].expense += value;
+    }
+  });
+
+  let income = 0;
+  let expense = 0;
+
+  return dates.map(date => {
+    income += byDate[date]?.income || 0;
+    expense += byDate[date]?.expense || 0;
+
+    return {
+      date,
+      income,
+      expense,
+      balance: income - expense
+    };
+  });
+}
+
+function getPreviousPeriod(start, end) {
+  if (!start || !end) {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const previousFirstDay = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const previousLastDay = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    return {
+      start: dateToInputValue(previousFirstDay),
+      end: dateToInputValue(previousLastDay),
+      currentStart: dateToInputValue(firstDay),
+      currentEnd: todayISO()
+    };
+  }
+
+  const startDate = parseInputDate(start);
+  const endDate = parseInputDate(end);
+  const days = Math.max(1, Math.round((endDate - startDate) / 86400000) + 1);
+  const previousEnd = new Date(startDate);
+  previousEnd.setDate(previousEnd.getDate() - 1);
+  const previousStart = new Date(previousEnd);
+  previousStart.setDate(previousStart.getDate() - days + 1);
+
+  return {
+    start: dateToInputValue(previousStart),
+    end: dateToInputValue(previousEnd)
+  };
+}
+
+function getDateRange(start, end) {
+  if (!start || !end) {
+    return [];
+  }
+
+  const dates = [];
+  const current = parseInputDate(start);
+  const last = parseInputDate(end);
+
+  while (current <= last) {
+    dates.push(dateToInputValue(current));
+    current.setDate(current.getDate() + 1);
+  }
+
+  return dates;
+}
+
+function parseInputDate(value) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatCompactMoney(value) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    notation: "compact",
+    maximumFractionDigits: 1
+  });
+}
+
+function formatPercentOfTotal(value, total) {
+  if (!total) {
+    return "0,0%";
+  }
+
+  return `${((value / total) * 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  })}%`;
 }
 
 function onReportTypeChange() {
