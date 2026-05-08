@@ -1240,10 +1240,11 @@ async function addCategory() {
     return;
   }
 
-  const { error } = await supabase.from("categories").insert({
+  const { error } = await supabase.from("user_categories").insert({
+    user_id: session.user.id,
     name,
     type,
-    is_default: false
+    hidden: false
   });
 
   if (error) {
@@ -1264,48 +1265,67 @@ async function loadCategoryList() {
     return;
   }
 
-  const { data, error } = await supabase
+  const { data: defaultCategories, error: defaultError } = await supabase
     .from("categories")
-    .select(`
-      id,
-      name,
-      type,
-      is_default,
-      user_categories (
-        hidden,
-        user_id
-      )
-    `);
+    .select("*");
 
-  if (error) {
-    setCategoryError(`Erro ao carregar categorias: ${error.message}`);
+  if (defaultError) {
+    setCategoryError(`Erro ao carregar categorias padrao: ${defaultError.message}`);
+    return;
+  }
+
+  const { data: userCategories, error: userError } = await supabase
+    .from("user_categories")
+    .select("*")
+    .eq("user_id", session.user.id);
+
+  if (userError) {
+    setCategoryError(`Erro ao carregar categorias do usuario: ${userError.message}`);
     return;
   }
 
   categoryList.innerHTML = "";
 
-  (data || []).forEach(cat => {
-    const userConfig = (cat.user_categories || []).find(
-      u => u.user_id === session.user.id
-    );
+  const userConfigByCategoryId = {};
+  const customCategories = [];
+
+  (userCategories || []).forEach(userCat => {
+    if (userCat.category_id) {
+      userConfigByCategoryId[userCat.category_id] = userCat;
+      return;
+    }
+
+    customCategories.push(userCat);
+  });
+
+  (defaultCategories || []).forEach(cat => {
+    const userConfig = userConfigByCategoryId[cat.id];
     const hidden = userConfig?.hidden || false;
     const li = document.createElement("li");
 
     li.className = "category-item";
     li.innerHTML = `
-      <span>${cat.name} (${typeLabels[cat.type] || cat.type}) ${cat.is_default ? "*" : ""}</span>
+      <span>${cat.name} (${typeLabels[cat.type] || cat.type}) *</span>
       <div>
-        ${
-          cat.is_default
-            ? `<label class="inline-check">
-                <input type="checkbox" data-hide="${cat.id}" ${hidden ? "checked" : ""}>
-                Ocultar
-              </label>`
-            : `
-              <button class="btn btn-light" data-edit="${cat.id}">Editar</button>
-              <button class="btn btn-danger" data-delete="${cat.id}">Excluir</button>
-            `
-        }
+        <label class="inline-check">
+          <input type="checkbox" data-hide="${cat.id}" ${hidden ? "checked" : ""}>
+          Ocultar
+        </label>
+      </div>
+    `;
+
+    categoryList.appendChild(li);
+  });
+
+  customCategories.forEach(cat => {
+    const li = document.createElement("li");
+
+    li.className = "category-item";
+    li.innerHTML = `
+      <span>${cat.name} (${typeLabels[cat.type] || cat.type})</span>
+      <div>
+        <button class="btn btn-light" data-user-edit="${cat.id}">Editar</button>
+        <button class="btn btn-danger" data-user-delete="${cat.id}">Excluir</button>
       </div>
     `;
 
@@ -1314,7 +1334,7 @@ async function loadCategoryList() {
 }
 
 async function onCategoryListClick(e) {
-  const edit = e.target.dataset.edit;
+  const edit = e.target.dataset.userEdit;
   if (edit) {
     const name = prompt("Novo nome:");
     if (!name) {
@@ -1322,9 +1342,10 @@ async function onCategoryListClick(e) {
     }
 
     const { error } = await supabase
-      .from("categories")
+      .from("user_categories")
       .update({ name })
-      .eq("id", edit);
+      .eq("id", edit)
+      .eq("user_id", (await getSession()).user.id);
 
     if (error) {
       setCategoryError(`Erro ao editar categoria: ${error.message}`);
@@ -1335,16 +1356,17 @@ async function onCategoryListClick(e) {
     return;
   }
 
-  const del = e.target.dataset.delete;
+  const del = e.target.dataset.userDelete;
   if (del) {
     if (!confirm("Excluir categoria?")) {
       return;
     }
 
     const { error } = await supabase
-      .from("categories")
+      .from("user_categories")
       .delete()
-      .eq("id", del);
+      .eq("id", del)
+      .eq("user_id", (await getSession()).user.id);
 
     if (error) {
       setCategoryError(`Erro ao excluir categoria: ${error.message}`);
@@ -1423,8 +1445,15 @@ async function loadCategoryOptions() {
   }
 
   const userMap = {};
+  const customCategories = [];
+
   (userCats || []).forEach(u => {
-    userMap[u.category_id] = u;
+    if (u.category_id) {
+      userMap[u.category_id] = u;
+      return;
+    }
+
+    customCategories.push(u);
   });
 
   const selectedType = typeEl.value;
@@ -1437,6 +1466,17 @@ async function loadCategoryOptions() {
 
     const userConfig = userMap[cat.id];
     if (userConfig?.hidden) {
+      return;
+    }
+
+    const option = document.createElement("option");
+    option.value = cat.name;
+    option.textContent = cat.name;
+    categoryEl.appendChild(option);
+  });
+
+  customCategories.forEach(cat => {
+    if (cat.hidden || cat.type !== selectedType) {
       return;
     }
 
