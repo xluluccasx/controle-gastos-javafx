@@ -9,14 +9,15 @@ public class Transaction {
     private String userId;
     private TxType type;
     private BigDecimal amount;
-    private Category category;
+    private String category;
     private String description;
     private LocalDate date;
     private LocalDateTime created_at;
+    private String receiptPath;
 
     public Transaction() {}
 
-    public Transaction(String id, String userId, TxType type, BigDecimal amount, Category category, String description, LocalDate date, LocalDateTime created_at) {
+    public Transaction(String id, String userId, TxType type, BigDecimal amount, String category, String description, LocalDate date, LocalDateTime created_at) {
         this.id = id;
         this.userId = userId;
         this.type = type;
@@ -39,8 +40,8 @@ public class Transaction {
     public BigDecimal getAmount() { return amount; }
     public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public Category getCategory() { return category; }
-    public void setCategory(Category category) { this.category = category; }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
@@ -55,4 +56,7 @@ public class Transaction {
     public void setCreated_at(LocalDateTime created_at) {
         this.created_at = created_at;
     }
+
+    public String getReceiptPath() { return receiptPath; }
+    public void setReceiptPath(String receiptPath) { this.receiptPath = receiptPath; }
 }

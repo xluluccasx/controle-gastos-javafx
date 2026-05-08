@@ -52,6 +52,27 @@ public class SupabaseClient {
         return res.body();
     }
 
+    public String patchJson(String url, String json, String preferHeader) throws Exception {
+        HttpRequest.Builder b = baseRequest(url)
+                .header("Content-Type", "application/json");
+
+        if (preferHeader != null && !preferHeader.isBlank()) {
+            b.header("Prefer", preferHeader);
+        }
+
+        HttpRequest req = b.method("PATCH", HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8)).build();
+        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        System.out.println("PATCH URL: " + url);
+        System.out.println("STATUS: " + res.statusCode());
+        System.out.println("BODY: " + res.body());
+
+        if (res.statusCode() < 200 || res.statusCode() >= 300) {
+            throw new RuntimeException("Erro HTTP " + res.statusCode() + ": " + res.body());
+        }
+        return res.body();
+    }
+
     public String get(String url) throws Exception {
         HttpRequest req = baseRequest(url).GET().build();
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
@@ -71,6 +92,24 @@ public class SupabaseClient {
         HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
 
         System.out.println("DELETE URL: " + url);
+        System.out.println("STATUS: " + res.statusCode());
+        System.out.println("BODY: " + res.body());
+
+        if (res.statusCode() < 200 || res.statusCode() >= 300) {
+            throw new RuntimeException("Erro HTTP " + res.statusCode() + ": " + res.body());
+        }
+        return res.body();
+    }
+
+    public String upload(String url, byte[] bytes, String contentType, boolean upsert) throws Exception {
+        HttpRequest req = baseRequest(url)
+                .header("Content-Type", contentType == null || contentType.isBlank() ? "application/octet-stream" : contentType)
+                .header("x-upsert", String.valueOf(upsert))
+                .POST(HttpRequest.BodyPublishers.ofByteArray(bytes))
+                .build();
+        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+
+        System.out.println("UPLOAD URL: " + url);
         System.out.println("STATUS: " + res.statusCode());
         System.out.println("BODY: " + res.body());
 

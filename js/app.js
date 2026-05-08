@@ -9,6 +9,9 @@ const ACTIVITY_EVENTS = ["click", "keydown", "mousemove", "scroll", "touchstart"
 let categoryBarChart;
 let barChart;
 let balanceLineChart;
+let reportTypeChart;
+let reportCategoryChart;
+let reportBalanceChart;
 let currentTransactions = [];
 let currentReportPreview = null;
 let currentEditTransaction = null;
@@ -1161,6 +1164,7 @@ function renderReportPreview(report) {
       <p>Periodo principal: ${formatDate(report.primary.start)} a ${formatDate(report.primary.end)}</p>
       ${summaryCards(primary)}
     </div>
+    ${reportChartsHtml()}
   `;
 
   if (report.type === "comparison" && report.comparison) {
@@ -1204,6 +1208,191 @@ function renderReportPreview(report) {
 
   preview.innerHTML = html;
   previewSection.classList.remove("hidden");
+  renderReportCharts(report);
+}
+
+function reportChartsHtml() {
+  return `
+    <div class="content-grid dashboard-charts report-chart-grid">
+      <section class="card chart-card">
+        <h2>Receitas x despesas</h2>
+        <div class="chart-wrap">
+          <canvas id="reportTypeChart"></canvas>
+        </div>
+      </section>
+      <section class="card chart-card">
+        <h2>Top categorias de despesa</h2>
+        <div class="chart-wrap">
+          <canvas id="reportCategoryChart"></canvas>
+        </div>
+      </section>
+      <section class="card chart-card chart-card-wide">
+        <h2>Evolucao do saldo</h2>
+        <div class="chart-wrap chart-wrap-large">
+          <canvas id="reportBalanceChart"></canvas>
+        </div>
+      </section>
+    </div>
+  `;
+}
+
+function renderReportCharts(report) {
+  renderReportTypeChart(report.primary.summary);
+  renderReportCategoryChart(report.primary.summary.byCategory);
+  renderReportBalanceChart(report.primary.transactions, report.primary);
+}
+
+function renderReportTypeChart(summary) {
+  const canvas = byId("reportTypeChart");
+  if (!canvas || !window.Chart) {
+    return;
+  }
+
+  if (reportTypeChart) {
+    reportTypeChart.destroy();
+  }
+
+  reportTypeChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: ["Receitas", "Despesas"],
+      datasets: [{
+        data: [summary.income, summary.expense],
+        backgroundColor: ["#10b981", "#dc2626"]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => formatMoney(Number(ctx.raw || 0))
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: value => formatCompactMoney(Number(value))
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderReportCategoryChart(byCategory) {
+  const canvas = byId("reportCategoryChart");
+  if (!canvas || !window.Chart) {
+    return;
+  }
+
+  const entries = Object.entries(byCategory)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8);
+
+  if (reportCategoryChart) {
+    reportCategoryChart.destroy();
+  }
+
+  reportCategoryChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels: entries.map(([category]) => category),
+      datasets: [{
+        data: entries.map(([, value]) => value),
+        backgroundColor: "#2563eb"
+      }]
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => formatMoney(Number(ctx.raw || 0))
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            callback: value => formatCompactMoney(Number(value))
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderReportBalanceChart(transactions, period) {
+  const canvas = byId("reportBalanceChart");
+  if (!canvas || !window.Chart) {
+    return;
+  }
+
+  const points = buildDailyBalancePoints(transactions, period.start, period.end);
+
+  if (reportBalanceChart) {
+    reportBalanceChart.destroy();
+  }
+
+  reportBalanceChart = new Chart(canvas, {
+    type: "line",
+    data: {
+      labels: points.map(point => formatDate(point.date)),
+      datasets: [
+        {
+          label: "Receitas acumuladas",
+          data: points.map(point => point.income),
+          borderColor: "#10b981",
+          backgroundColor: "rgba(16, 185, 129, 0.12)",
+          tension: 0.25
+        },
+        {
+          label: "Despesas acumuladas",
+          data: points.map(point => point.expense),
+          borderColor: "#dc2626",
+          backgroundColor: "rgba(220, 38, 38, 0.12)",
+          tension: 0.25
+        },
+        {
+          label: "Saldo acumulado",
+          data: points.map(point => point.balance),
+          borderColor: "#2563eb",
+          backgroundColor: "rgba(37, 99, 235, 0.12)",
+          tension: 0.25
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index"
+      },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx => `${ctx.dataset.label}: ${formatMoney(Number(ctx.raw || 0))}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            callback: value => formatCompactMoney(Number(value))
+          }
+        }
+      }
+    }
+  });
 }
 
 function summaryCards(summary) {
@@ -1387,6 +1576,7 @@ function downloadReportPdf() {
   doc.text(`Periodo principal: ${formatDate(report.primary.start)} a ${formatDate(report.primary.end)}`, 14, 28);
 
   let nextY = addSummaryToPdf(doc, report.primary.summary, 38);
+  nextY = addReportChartsToPdf(doc, nextY);
 
   if (report.type === "comparison" && report.comparison) {
     doc.text(`Periodo comparado: ${formatDate(report.comparison.start)} a ${formatDate(report.comparison.end)}`, 14, nextY);
@@ -1429,6 +1619,35 @@ function downloadReportPdf() {
   }
 
   doc.save(`relatorio-${report.type}-${report.primary.start}-${report.primary.end}.pdf`);
+}
+
+function addReportChartsToPdf(doc, startY) {
+  const charts = [
+    { id: "reportTypeChart", title: "Receitas x despesas", height: 58 },
+    { id: "reportCategoryChart", title: "Top categorias de despesa", height: 58 },
+    { id: "reportBalanceChart", title: "Evolucao do saldo", height: 72 }
+  ];
+
+  let y = startY;
+
+  charts.forEach(chart => {
+    const canvas = byId(chart.id);
+    if (!canvas) {
+      return;
+    }
+
+    if (y + chart.height + 14 > 285) {
+      doc.addPage();
+      y = 18;
+    }
+
+    doc.setFontSize(12);
+    doc.text(chart.title, 14, y);
+    doc.addImage(canvas.toDataURL("image/png", 1), "PNG", 14, y + 4, 182, chart.height);
+    y += chart.height + 14;
+  });
+
+  return y + 4;
 }
 
 function addSummaryToPdf(doc, summary, startY) {

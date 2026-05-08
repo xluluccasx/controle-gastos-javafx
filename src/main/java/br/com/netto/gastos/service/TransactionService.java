@@ -2,17 +2,18 @@ package br.com.netto.gastos.service;
 
 import br.com.netto.gastos.config.AppConfig;
 import br.com.netto.gastos.config.Session;
-import br.com.netto.gastos.model.Category;
 import br.com.netto.gastos.model.Transaction;
 import br.com.netto.gastos.model.TxType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
+import java.net.URLConnection;
 import java.net.URLEncoder;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -42,7 +43,7 @@ public class TransactionService {
                 t.getUserId(),
                 t.getType().name(),
                 t.getAmount().toPlainString(),
-                t.getCategory().name(),
+                escapeJson(t.getCategory()),
                 (t.getDescription() == null || t.getDescription().isBlank())
                         ? "null"
                         : "\"" + escapeJson(t.getDescription()) + "\"",
@@ -54,6 +55,48 @@ public class TransactionService {
         JsonNode arr = mapper.readTree(json);
         if (!arr.isArray() || arr.size() == 0) return t;
 
+        return parseTransaction(arr.get(0));
+    }
+
+    public void update(Transaction t) throws Exception {
+        String body = """
+                {
+                  "type": "%s",
+                  "amount": %s,
+                  "category": "%s",
+                  "description": %s,
+                  "date": "%s",
+                  "receipt_path": %s
+                }
+                """.formatted(
+                t.getType().name(),
+                t.getAmount().toPlainString(),
+                escapeJson(t.getCategory()),
+                (t.getDescription() == null || t.getDescription().isBlank())
+                        ? "null"
+                        : "\"" + escapeJson(t.getDescription()) + "\"",
+                t.getDate().toString(),
+                t.getReceiptPath() == null || t.getReceiptPath().isBlank()
+                        ? "null"
+                        : "\"" + escapeJson(t.getReceiptPath()) + "\""
+        );
+
+        String url = restBase()
+                + "?id=eq." + encode(t.getId())
+                + "&user_id=eq." + encode(Session.userId());
+        client.patchJson(url, body, null);
+    }
+
+    public Transaction findById(String id) throws Exception {
+        String url = restBase()
+                + "?id=eq." + encode(id)
+                + "&user_id=eq." + encode(Session.userId())
+                + "&limit=1";
+        String json = client.get(url);
+        JsonNode arr = mapper.readTree(json);
+        if (!arr.isArray() || arr.isEmpty()) {
+            return null;
+        }
         return parseTransaction(arr.get(0));
     }
 
@@ -76,9 +119,39 @@ public class TransactionService {
 
     public void deleteById(String id) throws Exception {
         String encoded = URLEncoder.encode("eq." + id, StandardCharsets.UTF_8);
-        // filtro: id=eq.<uuid>
-        String url = restBase() + "?id=" + encoded;
+        String url = restBase() + "?id=" + encoded + "&user_id=eq." + encode(Session.userId());
         client.delete(url);
+    }
+
+    public String uploadReceipt(String transactionId, Path file) throws Exception {
+        if (file == null) {
+            return null;
+        }
+        String fileName = file.getFileName().toString();
+        String ext = "";
+        int dot = fileName.lastIndexOf('.');
+        if (dot >= 0 && dot < fileName.length() - 1) {
+            ext = "." + fileName.substring(dot + 1);
+        }
+        String storagePath = Session.userId() + "/" + transactionId + "/comprovante" + ext;
+        String url = AppConfig.SUPABASE_URL + "/storage/v1/object/receipts/" + storagePath;
+        String contentType = URLConnection.guessContentTypeFromName(fileName);
+        client.upload(url, Files.readAllBytes(file), contentType, true);
+        return storagePath;
+    }
+
+    public String createReceiptUrl(String receiptPath) throws Exception {
+        String body = "{\"expiresIn\":60}";
+        String url = AppConfig.SUPABASE_URL + "/storage/v1/object/sign/receipts/" + receiptPath;
+        JsonNode n = mapper.readTree(client.postJson(url, body, null));
+        String signed = n.path("signedURL").asText(n.path("signedUrl").asText(null));
+        if (signed == null || signed.isBlank()) {
+            throw new RuntimeException("Supabase nao retornou URL assinada.");
+        }
+        if (signed.startsWith("http")) {
+            return signed;
+        }
+        return AppConfig.SUPABASE_URL + "/storage/v1" + signed;
     }
 
     private Transaction parseTransaction(JsonNode n) {
@@ -88,9 +161,10 @@ public class TransactionService {
         t.setUserId(n.path("user_id").asText(null));
         t.setType(TxType.valueOf(n.path("type").asText("EXPENSE")));
         t.setAmount(new BigDecimal(n.path("amount").asText("0")));
-        t.setCategory(Category.valueOf(n.path("category").asText("OUTROS")));
+        t.setCategory(n.path("category").asText("Outros"));
         t.setDescription(n.path("description").isNull() ? "" : n.path("description").asText(""));
         t.setDate(LocalDate.parse(n.path("date").asText(LocalDate.now().toString())));
+        t.setReceiptPath(n.path("receipt_path").isNull() ? null : n.path("receipt_path").asText(null));
 
         t.setCreated_at(
                 java.time.OffsetDateTime
@@ -104,6 +178,11 @@ public class TransactionService {
     }
 
     private static String escapeJson(String s) {
+        if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String encode(String s) {
+        return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 }

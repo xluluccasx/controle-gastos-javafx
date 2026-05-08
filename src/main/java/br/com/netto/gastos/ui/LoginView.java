@@ -29,7 +29,7 @@ public class LoginView {
         Label title = new Label("Controle de Gastos");
         title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
 
-        Label subtitle = new Label("Login   -  AL: LUCAS NETTO - RU: 4250816");
+        Label subtitle = new Label("Login - AL: LUCAS NETTO - RU: 4250816");
         subtitle.setStyle("-fx-opacity: 0.75;");
 
         VBox header = new VBox(6, title, subtitle);
@@ -108,7 +108,7 @@ public class LoginView {
                 }
                 auth.signUp(em, pw);
                 status.setStyle("-fx-text-fill: #0b6b2b;");
-                status.setText("Conta criada. confirme a verificação enviada para o email: " + em);
+                status.setText("Conta criada. Verifique o email enviado para: " + em);
             } catch (Exception ex) {
                 status.setStyle("-fx-text-fill: #b00020;");
                 status.setText("Falha ao criar conta: " + ex.getMessage());
@@ -127,7 +127,7 @@ public class LoginView {
 
                 auth.resetPassword(em);
                 status.setStyle("-fx-text-fill: #0b6b2b;");
-                status.setText("Enviamos um link de redefinição para o email: " + em);
+                status.setText("Enviamos um link de redefinicao para o email: " + em);
             } catch (Exception ex) {
                 status.setStyle("-fx-text-fill: #b00020;");
                 status.setText(ex.getMessage());
