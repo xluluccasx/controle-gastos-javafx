@@ -438,7 +438,7 @@ async function onAddTransaction() {
       });
 
     if (uploadError) {
-      setTxError(`Salvou, mas erro no comprovante: ${uploadError.message}`);
+      setTxError(`Salvou, mas erro no comprovante: ${receiptUploadMessage(uploadError)}`);
       return;
     }
 
@@ -506,7 +506,7 @@ async function updateTransaction(id) {
       });
 
     if (uploadError) {
-      setTxError(`Erro ao alterar comprovante: ${uploadError.message}`);
+      setTxError(`Erro ao alterar comprovante: ${receiptUploadMessage(uploadError)}`);
       return;
     }
 
@@ -1028,6 +1028,14 @@ function formatPercentOfTotal(value, total) {
   })}%`;
 }
 
+function receiptUploadMessage(error) {
+  const message = error?.message || String(error);
+  if (message.includes("row-level security") || message.includes("Unauthorized")) {
+    return "O Supabase bloqueou o upload pela politica RLS do bucket receipts. Aplique o arquivo supabase-storage-policies.sql no SQL Editor do Supabase.";
+  }
+  return message;
+}
+
 function onReportTypeChange() {
   const isComparison = byId("reportType")?.value === "comparison";
   byId("comparisonPeriodFields")?.classList.toggle("hidden", !isComparison);
@@ -1096,7 +1104,6 @@ async function previewReport() {
   }
 
   renderReportPreview(currentReportPreview);
-  byId("btnDownloadReport").disabled = false;
 }
 
 async function loadTransactionsBetween(start, end) {
@@ -1208,7 +1215,10 @@ function renderReportPreview(report) {
 
   preview.innerHTML = html;
   previewSection.classList.remove("hidden");
-  renderReportCharts(report);
+  requestAnimationFrame(() => {
+    renderReportCharts(report);
+    byId("btnDownloadReport").disabled = false;
+  });
 }
 
 function reportChartsHtml() {

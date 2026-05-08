@@ -27,6 +27,7 @@ public class TransactionFormDialog {
         dialog.setTitle(editing ? "Editar lancamento" : "Novo lancamento");
         dialog.setHeaderText(editing ? "Salvar alteracoes do lancamento" : "Adicionar receita ou despesa");
         dialog.initOwner(owner);
+        UiTheme.apply(dialog.getDialogPane());
 
         ButtonType save = new ButtonType(editing ? "Salvar alteracoes" : "Salvar lancamento", ButtonBar.ButtonData.OK_DONE);
         dialog.getDialogPane().getButtonTypes().addAll(save, ButtonType.CANCEL);

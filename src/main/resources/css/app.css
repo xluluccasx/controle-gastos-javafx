@@ -1,0 +1,74 @@
+.root {
+    -fx-font-family: "Arial", "Helvetica", sans-serif;
+    -fx-text-fill: #1f2937;
+}
+
+.label {
+    -fx-text-fill: #1f2937;
+}
+
+.date-picker-popup {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #d1d5db;
+}
+
+.date-picker-popup .month-year-pane {
+    -fx-background-color: #ffffff;
+}
+
+.date-picker-popup .month-year-pane .label,
+.date-picker-popup .spinner-label {
+    -fx-text-fill: #111827;
+    -fx-font-weight: 700;
+}
+
+.date-picker-popup .left-button,
+.date-picker-popup .right-button {
+    -fx-background-color: #e5e7eb;
+    -fx-background-radius: 8;
+}
+
+.date-picker-popup .left-arrow,
+.date-picker-popup .right-arrow {
+    -fx-background-color: #111827;
+}
+
+.date-picker-popup .day-name-cell,
+.date-picker-popup .week-number-cell {
+    -fx-text-fill: #4b5563;
+}
+
+.date-picker-popup .day-cell {
+    -fx-background-color: #ffffff;
+    -fx-text-fill: #111827;
+}
+
+.date-picker-popup .day-cell:hover,
+.date-picker-popup .selected {
+    -fx-background-color: #2563eb;
+    -fx-text-fill: #ffffff;
+}
+
+.date-picker-popup .today {
+    -fx-background-color: #dbeafe;
+    -fx-text-fill: #111827;
+}
+
+.chart {
+    -fx-text-fill: #1f2937;
+}
+
+.chart-title,
+.axis-label,
+.axis .tick-label,
+.chart-legend-item {
+    -fx-text-fill: #1f2937;
+}
+
+.chart-legend {
+    -fx-background-color: transparent;
+}
+
+.chart-legend-item-symbol {
+    -fx-background-radius: 3;
+}

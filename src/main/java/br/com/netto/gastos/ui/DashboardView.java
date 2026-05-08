@@ -16,8 +16,10 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
+import javafx.scene.Node;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.awt.Desktop;
@@ -60,6 +62,8 @@ public class DashboardView {
     private final BarChart<String, Number> categoryChart;
     private final BarChart<String, Number> typeChart;
     private final LineChart<String, Number> balanceChart;
+    private final Map<String, Boolean> dashboardLineVisibility = new HashMap<>();
+    private final Map<String, Boolean> reportLineVisibility = new HashMap<>();
 
     public DashboardView(Stage stage) {
         this.stage = stage;
@@ -164,7 +168,9 @@ public class DashboardView {
         reports.setOnAction(e -> showReportsDialog());
         logout.setOnAction(e -> {
             authService.signOut();
-            stage.setScene(new Scene(new LoginView(stage).getRoot(), 980, 640));
+            Scene scene = new Scene(new LoginView(stage).getRoot(), 980, 640);
+            UiTheme.apply(scene);
+            stage.setScene(scene);
         });
     }
 
@@ -354,10 +360,10 @@ public class DashboardView {
 
     private void renderBalanceChart(List<Transaction> list, LocalDate start, LocalDate end) {
         balanceChart.getData().clear();
-        renderBalanceChart(balanceChart, list, start, end);
+        renderBalanceChart(balanceChart, list, start, end, dashboardLineVisibility);
     }
 
-    private void renderBalanceChart(LineChart<String, Number> chart, List<Transaction> list, LocalDate start, LocalDate end) {
+    private void renderBalanceChart(LineChart<String, Number> chart, List<Transaction> list, LocalDate start, LocalDate end, Map<String, Boolean> visibility) {
         chart.getData().clear();
         Map<LocalDate, Summary> byDate = new HashMap<>();
         for (Transaction tx : list) {
@@ -388,6 +394,7 @@ public class DashboardView {
             styleLine(incomeSeries, "#10b981");
             styleLine(expenseSeries, "#dc2626");
             styleLine(balanceSeries, "#2563eb");
+            installLegendToggles(chart, visibility);
         });
     }
 
@@ -398,6 +405,76 @@ public class DashboardView {
         for (XYChart.Data<String, Number> data : series.getData()) {
             if (data.getNode() != null) {
                 data.getNode().setStyle("-fx-background-color: " + color + ", white;");
+            }
+        }
+    }
+
+    private void installLegendToggles(LineChart<String, Number> chart, Map<String, Boolean> visibility) {
+        for (XYChart.Series<String, Number> series : chart.getData()) {
+            visibility.putIfAbsent(series.getName(), true);
+            applySeriesVisibility(series, visibility.get(series.getName()));
+        }
+
+        for (Node legendItem : chart.lookupAll(".chart-legend-item")) {
+            Label label = findLegendLabel(legendItem);
+            if (label == null) {
+                continue;
+            }
+
+            String seriesName = label.getText();
+            Node symbol = legendItem.lookup(".chart-legend-item-symbol");
+            if (symbol != null) {
+                symbol.setStyle("-fx-background-color: " + colorForSeries(seriesName) + "; -fx-background-radius: 3;");
+            }
+            legendItem.setStyle("-fx-cursor: hand;");
+            legendItem.setOnMouseClicked(e -> {
+                boolean visible = !visibility.getOrDefault(seriesName, true);
+                visibility.put(seriesName, visible);
+
+                chart.getData().stream()
+                        .filter(series -> seriesName.equals(series.getName()))
+                        .findFirst()
+                        .ifPresent(series -> applySeriesVisibility(series, visible));
+
+                legendItem.setOpacity(visible ? 1.0 : 0.35);
+            });
+            legendItem.setOpacity(visibility.getOrDefault(seriesName, true) ? 1.0 : 0.35);
+        }
+    }
+
+    private String colorForSeries(String seriesName) {
+        return switch (seriesName) {
+            case "Receitas acumuladas" -> "#10b981";
+            case "Despesas acumuladas" -> "#dc2626";
+            case "Saldo acumulado" -> "#2563eb";
+            default -> "#2563eb";
+        };
+    }
+
+    private Label findLegendLabel(Node node) {
+        if (node instanceof Label label) {
+            return label;
+        }
+        if (node instanceof Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                Label label = findLegendLabel(child);
+                if (label != null) {
+                    return label;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void applySeriesVisibility(XYChart.Series<String, Number> series, boolean visible) {
+        if (series.getNode() != null) {
+            series.getNode().setVisible(visible);
+            series.getNode().setManaged(visible);
+        }
+        for (XYChart.Data<String, Number> data : series.getData()) {
+            if (data.getNode() != null) {
+                data.getNode().setVisible(visible);
+                data.getNode().setManaged(visible);
             }
         }
     }
@@ -462,6 +539,7 @@ public class DashboardView {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Gerenciar categorias");
         dialog.initOwner(stage);
+        UiTheme.apply(dialog.getDialogPane());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
         TextField name = new TextField();
@@ -566,6 +644,7 @@ public class DashboardView {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Relatorios PDF");
         dialog.initOwner(stage);
+        UiTheme.apply(dialog.getDialogPane());
         dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
 
         ComboBox<String> reportType = new ComboBox<>(FXCollections.observableArrayList(
@@ -607,7 +686,7 @@ public class DashboardView {
                 preview.setText(report[0].text());
                 renderTypeChart(reportTypeChart, report[0].summary());
                 renderCategoryChart(reportCategoryChart, report[0].summary().byCategory);
-                renderBalanceChart(reportBalanceChart, report[0].transactions(), reportStart.getValue(), reportEnd.getValue());
+                renderBalanceChart(reportBalanceChart, report[0].transactions(), reportStart.getValue(), reportEnd.getValue(), reportLineVisibility);
                 pdfButton.setDisable(false);
             } catch (Exception ex) {
                 alert(Alert.AlertType.ERROR, "Erro ao gerar relatorio: " + ex.getMessage());
@@ -663,7 +742,20 @@ public class DashboardView {
         VBox content = new VBox(16, sectionTitle("Exportar relatorio"), form, sectionTitle("Pre-visualizacao"), preview, reportCharts);
         content.setPadding(new Insets(18));
         content.setPrefWidth(820);
-        dialog.getDialogPane().setContent(content);
+
+        double maxWidth = Math.min(900, Screen.getPrimary().getVisualBounds().getWidth() - 80);
+        double maxHeight = Math.min(760, Screen.getPrimary().getVisualBounds().getHeight() - 80);
+        ScrollPane scroll = new ScrollPane(content);
+        scroll.setFitToWidth(true);
+        scroll.setPrefViewportWidth(maxWidth);
+        scroll.setPrefViewportHeight(maxHeight);
+        scroll.setMaxWidth(maxWidth);
+        scroll.setMaxHeight(maxHeight);
+        scroll.setStyle("-fx-background-color: transparent; -fx-background: transparent;");
+
+        dialog.getDialogPane().setContent(scroll);
+        dialog.getDialogPane().setMaxWidth(maxWidth + 40);
+        dialog.getDialogPane().setMaxHeight(maxHeight + 80);
         dialog.showAndWait();
     }
 

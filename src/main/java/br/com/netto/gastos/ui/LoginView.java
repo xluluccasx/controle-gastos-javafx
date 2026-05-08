@@ -90,7 +90,9 @@ public class LoginView {
                 auth.signIn(em, pw);
 
                 DashboardView dash = new DashboardView(stage);
-                stage.setScene(new Scene(dash.getRoot(), 1100, 720));
+                Scene scene = new Scene(dash.getRoot(), 1100, 720);
+                UiTheme.apply(scene);
+                stage.setScene(scene);
 
             } catch (Exception ex) {
                 status.setText("Falha no login: " + ex.getMessage());

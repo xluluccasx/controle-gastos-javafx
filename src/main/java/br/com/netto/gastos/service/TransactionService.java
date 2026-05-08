@@ -136,7 +136,15 @@ public class TransactionService {
         String storagePath = Session.userId() + "/" + transactionId + "/comprovante" + ext;
         String url = AppConfig.SUPABASE_URL + "/storage/v1/object/receipts/" + storagePath;
         String contentType = URLConnection.guessContentTypeFromName(fileName);
-        client.upload(url, Files.readAllBytes(file), contentType, true);
+        try {
+            client.upload(url, Files.readAllBytes(file), contentType, true);
+        } catch (RuntimeException ex) {
+            String message = ex.getMessage();
+            if (message != null && message.contains("row-level security")) {
+                throw new RuntimeException("O Supabase bloqueou o upload do comprovante pela politica RLS do bucket receipts. Aplique o arquivo supabase-storage-policies.sql no SQL Editor do Supabase.");
+            }
+            throw ex;
+        }
         return storagePath;
     }
 
