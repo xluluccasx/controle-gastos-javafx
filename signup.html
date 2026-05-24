@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Criar conta - Controle de Gastos</title>
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="page">
+    <header class="topbar">
+        <div>
+            <h1>Controle de Gastos</h1>
+            <p class="subtitle">Criar conta</p>
+        </div>
+        <a class="btn btn-light nav-link" href="login.html">Voltar ao login</a>
+    </header>
+
+    <main>
+        <section class="card auth-card">
+            <h2>Cadastro</h2>
+
+            <div class="form-grid signup-grid">
+                <div>
+                    <label for="email">E-mail</label>
+                    <input id="email" type="email" placeholder="seuemail@exemplo.com" />
+                </div>
+
+                <div>
+                    <label for="password">Senha</label>
+                    <input id="password" type="password" placeholder="Digite uma senha forte" />
+                </div>
+
+                <div>
+                    <label for="confirmPassword">Confirmar senha</label>
+                    <input id="confirmPassword" type="password" placeholder="Digite a senha novamente" />
+                </div>
+
+                <div class="password-strength">
+                    <label>Seguranca</label>
+                    <div class="password-strength-track">
+                        <span id="passwordStrengthFill" class="password-strength-fill empty"></span>
+                    </div>
+                    <p id="passwordStrengthLabel" class="password-strength-label empty">Seguranca da senha: informe uma senha</p>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button id="btnCreateAccount" class="btn btn-primary">Criar conta</button>
+                <a class="btn btn-light nav-link" href="login.html">Cancelar</a>
+            </div>
+
+            <p id="authStatus" class="status"></p>
+        </section>
+    </main>
+</div>
+<div id="toast" class="toast"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
