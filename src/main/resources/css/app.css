@@ -1,10 +1,101 @@
 .root {
     -fx-font-family: "Arial", "Helvetica", sans-serif;
-    -fx-text-fill: #1f2937;
+    -fx-background-color: #f4f7fb;
+    -fx-text-fill: #172033;
 }
 
 .label {
-    -fx-text-fill: #1f2937;
+    -fx-text-fill: #172033;
+}
+
+.button {
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-padding: 10 15;
+    -fx-cursor: hand;
+    -fx-font-weight: 700;
+}
+
+.button:hover {
+    -fx-opacity: 0.92;
+}
+
+.text-field,
+.password-field,
+.combo-box,
+.date-picker {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #cfd8e3;
+    -fx-border-radius: 8;
+    -fx-padding: 8 10;
+}
+
+.text-field:focused,
+.password-field:focused,
+.combo-box:focused,
+.date-picker:focused {
+    -fx-border-color: #2f6fed;
+    -fx-effect: dropshadow(three-pass-box, rgba(47,111,237,0.18), 8, 0, 0, 0);
+}
+
+.table-view,
+.list-view {
+    -fx-background-color: #ffffff;
+    -fx-background-radius: 8;
+    -fx-border-color: #dbe3ee;
+    -fx-border-radius: 8;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: #f2f6fb;
+    -fx-background-radius: 8 8 0 0;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: transparent;
+}
+
+.table-row-cell {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #e8eef5 transparent;
+}
+
+.table-row-cell:hover {
+    -fx-background-color: #f8fbff;
+}
+
+.list-cell {
+    -fx-background-color: #ffffff;
+    -fx-border-color: transparent transparent #e8eef5 transparent;
+    -fx-padding: 9 10;
+}
+
+.list-cell:hover {
+    -fx-background-color: #f8fbff;
+}
+
+.dialog-pane {
+    -fx-background-color: #ffffff;
+}
+
+.dialog-pane .header-panel {
+    -fx-background-color: #f8fafc;
+    -fx-border-color: transparent transparent #dbe3ee transparent;
+}
+
+.progress-bar {
+    -fx-accent: #0f9f8f;
+}
+
+.progress-bar > .track {
+    -fx-background-color: #e5e7eb;
+    -fx-background-radius: 999;
+}
+
+.progress-bar > .bar {
+    -fx-background-radius: 999;
 }
 
 .date-picker-popup {
@@ -45,7 +136,7 @@
 
 .date-picker-popup .day-cell:hover,
 .date-picker-popup .selected {
-    -fx-background-color: #2563eb;
+    -fx-background-color: #2f6fed;
     -fx-text-fill: #ffffff;
 }
 

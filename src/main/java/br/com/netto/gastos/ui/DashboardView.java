@@ -84,13 +84,13 @@ public class DashboardView {
         endDate.setValue(now);
 
         Label title = new Label("Controle de Gastos");
-        title.setStyle("-fx-font-size: 32px; -fx-font-weight: 700; -fx-text-fill: #1f2937;");
+        title.setStyle("-fx-font-size: 32px; -fx-font-weight: 800; -fx-text-fill: #172033;");
         Label subtitle = new Label("Dashboard");
-        subtitle.setStyle("-fx-text-fill: #6b7280;");
+        subtitle.setStyle("-fx-text-fill: #667085;");
         VBox titleBox = new VBox(4, title, subtitle);
 
         Label user = new Label(Session.email());
-        user.setStyle("-fx-text-fill: #374151;");
+        user.setStyle("-fx-text-fill: #667085;");
         Button logout = dangerButton("Sair");
         HBox userBox = new HBox(12, user, logout);
         userBox.setAlignment(Pos.CENTER_RIGHT);
@@ -155,11 +155,11 @@ public class DashboardView {
         content.setPadding(new Insets(0, 24, 24, 24));
         ScrollPane scroll = new ScrollPane(content);
         scroll.setFitToWidth(true);
-        scroll.setStyle("-fx-background: #f6f7fb; -fx-background-color: #f6f7fb;");
+        scroll.setStyle("-fx-background: #f4f7fb; -fx-background-color: #f4f7fb;");
 
         root.setTop(topbar);
         root.setCenter(scroll);
-        root.setStyle("-fx-background-color: #f6f7fb;");
+        root.setStyle("-fx-background-color: #f4f7fb;");
 
         apply.setOnAction(e -> refresh());
         refresh.setOnAction(e -> refresh());
@@ -318,7 +318,7 @@ public class DashboardView {
                 .limit(8)
                 .forEach(e -> series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue())));
         categoryChart.getData().add(series);
-        Platform.runLater(() -> series.getData().forEach(d -> d.getNode().setStyle("-fx-bar-fill: #2563eb;")));
+        Platform.runLater(() -> series.getData().forEach(d -> d.getNode().setStyle("-fx-bar-fill: #2f6fed;")));
     }
 
     private void renderCategoryChart(BarChart<String, Number> chart, Map<String, BigDecimal> byCategory) {
@@ -329,7 +329,7 @@ public class DashboardView {
                 .limit(8)
                 .forEach(e -> series.getData().add(new XYChart.Data<>(e.getKey(), e.getValue())));
         chart.getData().add(series);
-        Platform.runLater(() -> series.getData().forEach(d -> d.getNode().setStyle("-fx-bar-fill: #2563eb;")));
+        Platform.runLater(() -> series.getData().forEach(d -> d.getNode().setStyle("-fx-bar-fill: #2f6fed;")));
     }
 
     private void renderTypeChart(Summary s) {
@@ -340,7 +340,7 @@ public class DashboardView {
         series.getData().addAll(income, expense);
         typeChart.getData().add(series);
         Platform.runLater(() -> {
-            if (income.getNode() != null) income.getNode().setStyle("-fx-bar-fill: #10b981;");
+            if (income.getNode() != null) income.getNode().setStyle("-fx-bar-fill: #0f9f8f;");
             if (expense.getNode() != null) expense.getNode().setStyle("-fx-bar-fill: #dc2626;");
         });
     }
@@ -353,7 +353,7 @@ public class DashboardView {
         series.getData().addAll(income, expense);
         chart.getData().add(series);
         Platform.runLater(() -> {
-            if (income.getNode() != null) income.getNode().setStyle("-fx-bar-fill: #10b981;");
+            if (income.getNode() != null) income.getNode().setStyle("-fx-bar-fill: #0f9f8f;");
             if (expense.getNode() != null) expense.getNode().setStyle("-fx-bar-fill: #dc2626;");
         });
     }
@@ -391,9 +391,9 @@ public class DashboardView {
         }
         chart.getData().addAll(incomeSeries, expenseSeries, balanceSeries);
         Platform.runLater(() -> {
-            styleLine(incomeSeries, "#10b981");
+            styleLine(incomeSeries, "#0f9f8f");
             styleLine(expenseSeries, "#dc2626");
-            styleLine(balanceSeries, "#2563eb");
+            styleLine(balanceSeries, "#2f6fed");
             installLegendToggles(chart, visibility);
         });
     }
@@ -444,10 +444,10 @@ public class DashboardView {
 
     private String colorForSeries(String seriesName) {
         return switch (seriesName) {
-            case "Receitas acumuladas" -> "#10b981";
+            case "Receitas acumuladas" -> "#0f9f8f";
             case "Despesas acumuladas" -> "#dc2626";
-            case "Saldo acumulado" -> "#2563eb";
-            default -> "#2563eb";
+            case "Saldo acumulado" -> "#2f6fed";
+            default -> "#2f6fed";
         };
     }
 
@@ -480,18 +480,23 @@ public class DashboardView {
     }
 
     private void onAdd() {
-        new TransactionFormDialog().showAndWait(stage, null).ifPresent(result -> {
-            try {
-                Transaction saved = txService.add(result.transaction());
-                if (result.receiptFile() != null) {
-                    saved.setReceiptPath(txService.uploadReceipt(saved.getId(), result.receiptFile()));
-                    txService.update(saved);
+        boolean keepAdding;
+        do {
+            keepAdding = new TransactionFormDialog().showAndWait(stage, null).map(result -> {
+                try {
+                    Transaction saved = txService.add(result.transaction());
+                    if (result.receiptFile() != null) {
+                        saved.setReceiptPath(txService.uploadReceipt(saved.getId(), result.receiptFile()));
+                        txService.update(saved);
+                    }
+                    refresh();
+                    return result.continueAdding();
+                } catch (Exception ex) {
+                    alert(Alert.AlertType.ERROR, "Erro ao salvar: " + ex.getMessage());
+                    return false;
                 }
-                refresh();
-            } catch (Exception ex) {
-                alert(Alert.AlertType.ERROR, "Erro ao salvar: " + ex.getMessage());
-            }
-        });
+            }).orElse(false);
+        } while (keepAdding);
     }
 
     private void onEdit(Transaction selected) {
@@ -829,8 +834,8 @@ public class DashboardView {
 
     private VBox kpi(String title, Label value, Label delta) {
         Label label = new Label(title);
-        label.setStyle("-fx-text-fill: #6b7280; -fx-font-weight: 700;");
-        value.setStyle("-fx-font-size: 28px; -fx-font-weight: 700; -fx-text-fill: #111827;");
+        label.setStyle("-fx-text-fill: #667085; -fx-font-weight: 700;");
+        value.setStyle("-fx-font-size: 28px; -fx-font-weight: 800; -fx-text-fill: #172033;");
         VBox box = new VBox(8, label, value, delta);
         box.setPadding(new Insets(16));
         box.setStyle(cardStyle());
@@ -847,23 +852,23 @@ public class DashboardView {
 
     private VBox field(String label, Control control) {
         Label l = new Label(label);
-        l.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #4b5563;");
+        l.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #667085;");
         control.setPrefWidth(170);
         return new VBox(4, l, control);
     }
 
     private Label sectionTitle(String text) {
         Label label = new Label(text);
-        label.setStyle("-fx-font-size: 18px; -fx-font-weight: 700; -fx-text-fill: #1f2937;");
+        label.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #172033;");
         return label;
     }
 
     private Button primaryButton(String text) {
-        return button(text, "#2563eb", "#ffffff");
+        return button(text, "#2f6fed", "#ffffff");
     }
 
     private Button secondaryButton(String text) {
-        return button(text, "#10b981", "#ffffff");
+        return button(text, "#0f9f8f", "#ffffff");
     }
 
     private Button dangerButton(String text) {
@@ -871,17 +876,17 @@ public class DashboardView {
     }
 
     private Button lightButton(String text) {
-        return button(text, "#e5e7eb", "#111827");
+        return button(text, "#e9eef5", "#172033");
     }
 
     private Button button(String text, String bg, String fg) {
         Button b = new Button(text);
-        b.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: " + fg + "; -fx-font-weight: 700; -fx-background-radius: 10; -fx-padding: 9 14;");
+        b.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: " + fg + "; -fx-font-weight: 700; -fx-background-radius: 8; -fx-padding: 10 15; -fx-cursor: hand;");
         return b;
     }
 
     private String cardStyle() {
-        return "-fx-background-color: white; -fx-background-radius: 14; -fx-border-color: #e5e7eb; -fx-border-radius: 14; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 18, 0, 0, 6);";
+        return "-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #dbe3ee; -fx-border-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(15,23,42,0.08), 22, 0, 0, 8);";
     }
 
     private void alert(Alert.AlertType type, String message) {

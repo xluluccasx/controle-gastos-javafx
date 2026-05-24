@@ -37,6 +37,11 @@ async function init() {
     return;
   }
 
+  if (page === "signup.html") {
+    await initSignup();
+    return;
+  }
+
   if (page === "dashboard.html") {
     if (!await requireSession()) {
       return;
@@ -121,22 +126,9 @@ async function initLogin() {
   });
 
   btnSignup?.addEventListener("click", async () => {
-    clearAuthStatus();
-
     const email = emailEl.value.trim();
-    const password = passwordEl.value.trim();
-
-    if (!email || !password) {
-      setAuthError("Preencha email e senha.");
-      return;
-    }
-
-    try {
-      await signUp(email, password);
-      setAuthSuccess(`Conta criada.\nVerifique o email enviado para: ${email}`);
-    } catch (err) {
-      setAuthError(`Falha ao criar conta: ${err.message}`);
-    }
+    const query = email ? `?email=${encodeURIComponent(email)}` : "";
+    window.location.href = `signup.html${query}`;
   });
 
   btnForgot?.addEventListener("click", async () => {
@@ -154,6 +146,70 @@ async function initLogin() {
       setAuthSuccess(`Enviamos um link de redefinicao para: ${email}`);
     } catch (err) {
       setAuthError(err.message);
+    }
+  });
+}
+
+async function initSignup() {
+  clearLegacyLocalStorageSession();
+
+  const emailEl = document.getElementById("email");
+  const passwordEl = document.getElementById("password");
+  const confirmPasswordEl = document.getElementById("confirmPassword");
+  const btnCreateAccount = document.getElementById("btnCreateAccount");
+  const strengthFill = document.getElementById("passwordStrengthFill");
+  const strengthLabel = document.getElementById("passwordStrengthLabel");
+
+  const params = new URLSearchParams(window.location.search);
+  const email = params.get("email");
+  if (emailEl && email) {
+    emailEl.value = email;
+  }
+
+  const renderStrength = () => {
+    const strength = evaluatePasswordStrength(passwordEl?.value || "");
+    if (strengthFill) {
+      strengthFill.style.width = `${strength.percent}%`;
+      strengthFill.className = `password-strength-fill ${strength.className}`;
+    }
+    if (strengthLabel) {
+      strengthLabel.textContent = `Seguranca da senha: ${strength.label}`;
+      strengthLabel.className = `password-strength-label ${strength.className}`;
+    }
+  };
+
+  passwordEl?.addEventListener("input", renderStrength);
+  renderStrength();
+
+  btnCreateAccount?.addEventListener("click", async () => {
+    clearAuthStatus();
+
+    const emailValue = emailEl.value.trim();
+    const password = passwordEl.value;
+    const confirmation = confirmPasswordEl.value;
+
+    if (!emailValue || !password || !confirmation) {
+      setAuthError("Preencha email, senha e confirmacao.");
+      return;
+    }
+
+    if (password !== confirmation) {
+      setAuthError("As senhas nao conferem.");
+      return;
+    }
+
+    const strength = evaluatePasswordStrength(password);
+    if (strength.score < 5) {
+      setAuthError("Use uma senha forte: minimo de 8 caracteres, maiuscula, minuscula, numero e simbolo.");
+      return;
+    }
+
+    try {
+      await signUp(emailValue, password);
+      btnCreateAccount.disabled = true;
+      setAuthSuccess(`Conta criada.\nVerifique o email enviado para: ${emailValue}`);
+    } catch (err) {
+      setAuthError(`Falha ao criar conta: ${err.message}`);
     }
   });
 }
@@ -176,6 +232,49 @@ async function initDashboard() {
   await loadTransactions();
 }
 
+function evaluatePasswordStrength(password) {
+  if (!password) {
+    return {
+      score: 0,
+      percent: 0,
+      label: "informe uma senha",
+      className: "empty"
+    };
+  }
+
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (/[a-z]/.test(password)) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (score <= 2) {
+    return {
+      score,
+      percent: Math.max(20, score * 20),
+      label: "Fraca",
+      className: "weak"
+    };
+  }
+
+  if (score <= 4) {
+    return {
+      score,
+      percent: score * 20,
+      label: "Media",
+      className: "medium"
+    };
+  }
+
+  return {
+    score,
+    percent: 100,
+    label: "Forte",
+    className: "strong"
+  };
+}
+
 async function initTransactionForm() {
   const dateEl = byId("date");
   const typeEl = byId("type");
@@ -187,7 +286,9 @@ async function initTransactionForm() {
   await loadCategoryOptions();
 
   typeEl?.addEventListener("change", loadCategoryOptions);
-  byId("btnAddTransaction")?.addEventListener("click", onAddTransaction);
+  byId("btnAddTransaction")?.addEventListener("click", () => onAddTransaction("continue"));
+  byId("btnSaveAndContinue")?.addEventListener("click", () => onAddTransaction("continue"));
+  byId("btnSaveAndExit")?.addEventListener("click", () => onAddTransaction("exit"));
 }
 
 async function initEditTransactionForm() {
@@ -380,7 +481,7 @@ function clearLegacyLocalStorageSession() {
   });
 }
 
-async function onAddTransaction() {
+async function onAddTransaction(mode = "continue") {
   setTxStatus("");
 
   const session = await getSession();
@@ -448,7 +549,8 @@ async function onAddTransaction() {
       .eq("id", data.id);
   }
 
-  setTxSuccess("Lancamento salvo!");
+  const shouldExit = mode === "exit";
+  setTxSuccess(shouldExit ? "Lancamento salvo. Voltando ao dashboard..." : "Lancamento salvo. Voce pode cadastrar outro.");
   showToast("Lancamento salvo!");
 
   amountEl.value = "";
@@ -458,6 +560,15 @@ async function onAddTransaction() {
   if (receiptFileEl) {
     receiptFileEl.value = "";
   }
+
+  if (shouldExit) {
+    setTimeout(() => {
+      window.location.href = "dashboard.html";
+    }, 900);
+    return;
+  }
+
+  amountEl.focus();
 }
 
 async function updateTransaction(id) {

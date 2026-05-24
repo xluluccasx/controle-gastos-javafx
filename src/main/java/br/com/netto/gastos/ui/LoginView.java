@@ -27,10 +27,10 @@ public class LoginView {
 
     private void build() {
         Label title = new Label("Controle de Gastos");
-        title.setStyle("-fx-font-size: 28px; -fx-font-weight: bold;");
+        title.setStyle("-fx-font-size: 30px; -fx-font-weight: 800; -fx-text-fill: #172033;");
 
         Label subtitle = new Label("Login - AL: LUCAS NETTO - RU: 4250816");
-        subtitle.setStyle("-fx-opacity: 0.75;");
+        subtitle.setStyle("-fx-text-fill: #667085;");
 
         VBox header = new VBox(6, title, subtitle);
         header.setPadding(new Insets(30, 30, 10, 30));
@@ -44,6 +44,9 @@ public class LoginView {
         Button btnLogin = new Button("Entrar");
         Button btnSignup = new Button("Criar conta");
         Button rmbPass = new Button("Esqueci a senha");
+        btnLogin.setStyle("-fx-background-color: #2f6fed; -fx-text-fill: white;");
+        btnSignup.setStyle("-fx-background-color: #0f9f8f; -fx-text-fill: white;");
+        rmbPass.setStyle("-fx-background-color: #e9eef5; -fx-text-fill: #172033;");
         btnLogin.setDefaultButton(true);
 
         Label status = new Label();
@@ -65,15 +68,15 @@ public class LoginView {
         form.setMaxWidth(720);
         form.setStyle("""
                 -fx-background-color: white;
-                -fx-background-radius: 12;
-                -fx-border-color: #e5e5e5;
-                -fx-border-radius: 12;
-                -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.08), 14, 0, 0, 4);
+                -fx-background-radius: 8;
+                -fx-border-color: #dbe3ee;
+                -fx-border-radius: 8;
+                -fx-effect: dropshadow(three-pass-box, rgba(15,23,42,0.08), 22, 0, 0, 8);
                 """);
 
         StackPane center = new StackPane(form);
         center.setPadding(new Insets(0, 30, 30, 30));
-        center.setStyle("-fx-background-color: #f6f7fb;");
+        center.setStyle("-fx-background-color: #f4f7fb;");
 
         root.setTop(header);
         root.setCenter(center);
@@ -100,21 +103,10 @@ public class LoginView {
         });
 
         btnSignup.setOnAction(e -> {
-            status.setText("");
-            try {
-                String em = email.getText().trim();
-                String pw = password.getText().trim();
-                if (em.isBlank() || pw.isBlank()) {
-                    status.setText("Preencha email e senha.");
-                    return;
-                }
-                auth.signUp(em, pw);
-                status.setStyle("-fx-text-fill: #0b6b2b;");
-                status.setText("Conta criada. Verifique o email enviado para: " + em);
-            } catch (Exception ex) {
-                status.setStyle("-fx-text-fill: #b00020;");
-                status.setText("Falha ao criar conta: " + ex.getMessage());
-            }
+            SignupView signupView = new SignupView(stage, email.getText().trim());
+            Scene scene = new Scene(signupView.getRoot(), 980, 640);
+            UiTheme.apply(scene);
+            stage.setScene(scene);
         });
 
         rmbPass.setOnAction(e -> {

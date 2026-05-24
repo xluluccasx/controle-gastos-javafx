@@ -29,8 +29,13 @@ public class TransactionFormDialog {
         dialog.initOwner(owner);
         UiTheme.apply(dialog.getDialogPane());
 
-        ButtonType save = new ButtonType(editing ? "Salvar alteracoes" : "Salvar lancamento", ButtonBar.ButtonData.OK_DONE);
-        dialog.getDialogPane().getButtonTypes().addAll(save, ButtonType.CANCEL);
+        ButtonType save = new ButtonType(editing ? "Salvar alteracoes" : "Salvar e sair", ButtonBar.ButtonData.OK_DONE);
+        ButtonType saveAndContinue = new ButtonType("Salvar e continuar", ButtonBar.ButtonData.APPLY);
+        if (editing) {
+            dialog.getDialogPane().getButtonTypes().addAll(save, ButtonType.CANCEL);
+        } else {
+            dialog.getDialogPane().getButtonTypes().addAll(save, saveAndContinue, ButtonType.CANCEL);
+        }
         dialog.getDialogPane().setStyle("-fx-background-color: #ffffff;");
 
         ComboBox<TxType> type = new ComboBox<>();
@@ -107,18 +112,27 @@ public class TransactionFormDialog {
         dialog.getDialogPane().setContent(grid);
 
         dialog.setResultConverter(btn -> {
-            if (btn != save) return null;
+            if (btn != save && btn != saveAndContinue) return null;
             Transaction t = editing ? existing : new Transaction();
             t.setType(type.getValue());
             t.setCategory(category.getValue());
             t.setAmount(parseAmount(amount.getText()));
             t.setDate(date.getValue());
             t.setDescription(desc.getText().trim());
-            return new Result(t, selectedReceipt);
+            return new Result(t, selectedReceipt, btn == saveAndContinue);
         });
 
         final Button btnSave = (Button) dialog.getDialogPane().lookupButton(save);
-        btnSave.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> {
+        btnSave.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> validateBeforeSave(ev, category, amount, date));
+        if (!editing) {
+            final Button btnSaveAndContinue = (Button) dialog.getDialogPane().lookupButton(saveAndContinue);
+            btnSaveAndContinue.addEventFilter(javafx.event.ActionEvent.ACTION, ev -> validateBeforeSave(ev, category, amount, date));
+        }
+
+        return dialog.showAndWait();
+    }
+
+    private void validateBeforeSave(javafx.event.ActionEvent ev, ComboBox<String> category, TextField amount, DatePicker date) {
             try {
                 if (category.getValue() == null || category.getValue().isBlank()) {
                     throw new IllegalArgumentException("Selecione uma categoria.");
@@ -131,9 +145,6 @@ public class TransactionFormDialog {
                 ev.consume();
                 new Alert(Alert.AlertType.ERROR, ex.getMessage(), ButtonType.OK).showAndWait();
             }
-        });
-
-        return dialog.showAndWait();
     }
 
     private static Label label(String text) {
@@ -155,5 +166,5 @@ public class TransactionFormDialog {
         return value;
     }
 
-    public record Result(Transaction transaction, Path receiptFile) {}
+    public record Result(Transaction transaction, Path receiptFile, boolean continueAdding) {}
 }
