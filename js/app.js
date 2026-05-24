@@ -1743,10 +1743,14 @@ function downloadReportPdf() {
 }
 
 function addReportChartsToPdf(doc, startY) {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const marginX = 14;
+  const maxWidth = pageWidth - marginX * 2;
   const charts = [
-    { id: "reportTypeChart", title: "Receitas x despesas", height: 58 },
-    { id: "reportCategoryChart", title: "Top categorias de despesa", height: 58 },
-    { id: "reportBalanceChart", title: "Evolucao do saldo", height: 72 }
+    { id: "reportTypeChart", title: "Receitas x despesas", maxHeight: 72 },
+    { id: "reportCategoryChart", title: "Top categorias de despesa", maxHeight: 72 },
+    { id: "reportBalanceChart", title: "Evolucao do saldo", maxHeight: 84 }
   ];
 
   let y = startY;
@@ -1757,18 +1761,34 @@ function addReportChartsToPdf(doc, startY) {
       return;
     }
 
-    if (y + chart.height + 14 > 285) {
+    const size = fitImageSize(canvas, maxWidth, chart.maxHeight);
+    const blockHeight = size.height + 16;
+
+    if (y + blockHeight > pageHeight - 12) {
       doc.addPage();
       y = 18;
     }
 
     doc.setFontSize(12);
-    doc.text(chart.title, 14, y);
-    doc.addImage(canvas.toDataURL("image/png", 1), "PNG", 14, y + 4, 182, chart.height);
-    y += chart.height + 14;
+    doc.text(chart.title, marginX, y);
+
+    const imageX = marginX + (maxWidth - size.width) / 2;
+    doc.addImage(canvas.toDataURL("image/png", 1), "PNG", imageX, y + 4, size.width, size.height);
+    y += blockHeight;
   });
 
   return y + 4;
+}
+
+function fitImageSize(canvas, maxWidth, maxHeight) {
+  const naturalWidth = canvas.width || canvas.offsetWidth || maxWidth;
+  const naturalHeight = canvas.height || canvas.offsetHeight || maxHeight;
+  const ratio = Math.min(maxWidth / naturalWidth, maxHeight / naturalHeight);
+
+  return {
+    width: naturalWidth * ratio,
+    height: naturalHeight * ratio
+  };
 }
 
 function addSummaryToPdf(doc, summary, startY) {
