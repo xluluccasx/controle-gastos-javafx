@@ -102,6 +102,7 @@ public class DashboardView {
 
         Button apply = primaryButton("Aplicar");
         Button refresh = lightButton("Atualizar");
+        Button viewTransactions = lightButton("Ver lancamentos");
         Button add = secondaryButton("Novo lancamento");
         Button categories = lightButton("Gerenciar categorias");
         Button reports = lightButton("Relatorios PDF");
@@ -111,9 +112,8 @@ public class DashboardView {
                 field("Data final", endDate),
                 apply,
                 refresh,
-                add,
-                categories,
-                reports
+                reports,
+                viewTransactions
         );
         filters.setAlignment(Pos.BOTTOM_LEFT);
         filters.setPadding(new Insets(16));
@@ -146,7 +146,11 @@ public class DashboardView {
         chartGrid.getColumnConstraints().addAll(chartCol, chartCol);
 
         setupTable();
-        VBox tableCard = new VBox(10, sectionTitle("Lancamentos do periodo"), table);
+        Region tableHeaderSpacer = new Region();
+        HBox.setHgrow(tableHeaderSpacer, Priority.ALWAYS);
+        HBox tableHeader = new HBox(12, sectionTitle("Lancamentos do periodo"), tableHeaderSpacer, add, categories);
+        tableHeader.setAlignment(Pos.CENTER_LEFT);
+        VBox tableCard = new VBox(10, tableHeader, table);
         tableCard.setPadding(new Insets(16));
         tableCard.setStyle(cardStyle());
         VBox.setVgrow(table, Priority.ALWAYS);
@@ -163,6 +167,10 @@ public class DashboardView {
 
         apply.setOnAction(e -> refresh());
         refresh.setOnAction(e -> refresh());
+        viewTransactions.setOnAction(e -> {
+            scroll.setVvalue(1.0);
+            table.requestFocus();
+        });
         add.setOnAction(e -> onAdd());
         categories.setOnAction(e -> showCategoriesDialog());
         reports.setOnAction(e -> showReportsDialog());
