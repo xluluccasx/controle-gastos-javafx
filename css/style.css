@@ -64,6 +64,13 @@ select {
   letter-spacing: 0;
 }
 
+.topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
 .subtitle {
   margin: 6px 0 0;
   color: var(--muted);
@@ -120,6 +127,23 @@ main {
 .auth-card {
   max-width: 760px;
   box-shadow: var(--shadow);
+}
+
+.download-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: 760px;
+}
+
+.download-card h2 {
+  margin-bottom: 6px;
+}
+
+.download-card p {
+  margin: 0;
+  color: var(--muted);
 }
 
 .form-grid {
@@ -674,9 +698,14 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .topbar,
+  .download-card,
   .filter-row {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .topbar-actions {
+    justify-content: flex-start;
   }
 
   .user-box {
@@ -703,7 +732,10 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .actions .btn,
-  .actions .nav-link {
+  .actions .nav-link,
+  .download-card .btn,
+  .topbar-actions .btn,
+  .download-link {
     width: 100%;
   }
 

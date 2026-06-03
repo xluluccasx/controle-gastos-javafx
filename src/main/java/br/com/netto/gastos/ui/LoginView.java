@@ -9,6 +9,13 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 
+import java.awt.Desktop;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 public class LoginView {
 
     private final Stage stage;
@@ -103,10 +110,13 @@ public class LoginView {
         });
 
         btnSignup.setOnAction(e -> {
-            SignupView signupView = new SignupView(stage, email.getText().trim());
-            Scene scene = new Scene(signupView.getRoot(), 980, 640);
-            UiTheme.apply(scene);
-            stage.setScene(scene);
+            status.setText("");
+            try {
+                openSignupPage(email.getText().trim());
+            } catch (Exception ex) {
+                status.setStyle("-fx-text-fill: #b00020;");
+                status.setText("Erro ao abrir a pagina de cadastro: " + ex.getMessage());
+            }
         });
 
         rmbPass.setOnAction(e -> {
@@ -128,5 +138,48 @@ public class LoginView {
             }
         });
 
+    }
+
+    private void openSignupPage(String initialEmail) throws Exception {
+        if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
+            throw new IllegalStateException("Navegador padrao nao disponivel neste sistema.");
+        }
+
+        Path signupPage = findSignupPage();
+        if (!Files.exists(signupPage)) {
+            throw new IllegalStateException("Arquivo signup.html nao encontrado em: " + signupPage);
+        }
+
+        String url = signupPage.toUri().toString();
+        if (initialEmail != null && !initialEmail.isBlank()) {
+            url += "?email=" + URLEncoder.encode(initialEmail, StandardCharsets.UTF_8);
+        }
+
+        Desktop.getDesktop().browse(URI.create(url));
+    }
+
+    private Path findSignupPage() throws Exception {
+        Path workingDirPage = Path.of(System.getProperty("user.dir"), "signup.html").toAbsolutePath().normalize();
+        if (Files.exists(workingDirPage)) {
+            return workingDirPage;
+        }
+
+        Path codePath = Path.of(LoginView.class.getProtectionDomain().getCodeSource().getLocation().toURI())
+                .toAbsolutePath()
+                .normalize();
+        Path appDir = Files.isDirectory(codePath) ? codePath : codePath.getParent();
+
+        Path[] candidates = {
+                appDir.resolve("signup.html"),
+                appDir.getParent() == null ? appDir.resolve("signup.html") : appDir.getParent().resolve("signup.html")
+        };
+
+        for (Path candidate : candidates) {
+            if (Files.exists(candidate)) {
+                return candidate;
+            }
+        }
+
+        return workingDirPage;
     }
 }
