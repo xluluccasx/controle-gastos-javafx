@@ -1,3 +1,4 @@
+/** Controla as telas web, autenticacao, lancamentos, categorias, graficos e relatorios. */
 import { supabase } from "./supabase.js";
 import { signUp, forgotPassword, getSession } from "./auth.js";
 import { TABLE_NAME } from "./config.js";
@@ -27,6 +28,7 @@ const typeLabels = {
 
 init();
 
+/** Identifica a pagina atual e inicializa somente os recursos necessarios. */
 async function init() {
   setupRipple();
   setupInactivityControl();
@@ -83,10 +85,12 @@ async function init() {
   }
 }
 
+/** Retorna o nome do arquivo correspondente a pagina aberta. */
 function currentPage() {
   return window.location.pathname.split("/").pop();
 }
 
+/** Configura validacoes e eventos da tela de login. */
 async function initLogin() {
   clearLegacyLocalStorageSession();
 
@@ -151,6 +155,7 @@ async function initLogin() {
   });
 }
 
+/** Configura validacoes, forca de senha e envio do cadastro. */
 async function initSignup() {
   clearLegacyLocalStorageSession();
 
@@ -167,6 +172,7 @@ async function initSignup() {
     emailEl.value = email;
   }
 
+  /** Atualiza a apresentacao visual da forca da senha. */
   const renderStrength = () => {
     const strength = evaluatePasswordStrength(passwordEl?.value || "");
     if (strengthFill) {
@@ -215,6 +221,7 @@ async function initSignup() {
   });
 }
 
+/** Configura filtros, eventos e dados iniciais do painel. */
 async function initDashboard() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -233,6 +240,7 @@ async function initDashboard() {
   await loadTransactions();
 }
 
+/** Pontua a senha conforme os requisitos de seguranca. */
 function evaluatePasswordStrength(password) {
   if (!password) {
     return {
@@ -276,6 +284,7 @@ function evaluatePasswordStrength(password) {
   };
 }
 
+/** Prepara o formulario de inclusao de lancamentos. */
 async function initTransactionForm() {
   const dateEl = byId("date");
   const typeEl = byId("type");
@@ -292,6 +301,7 @@ async function initTransactionForm() {
   byId("btnSaveAndExit")?.addEventListener("click", () => onAddTransaction("exit"));
 }
 
+/** Prepara o formulario de edicao e carrega o lancamento. */
 async function initEditTransactionForm() {
   const id = new URLSearchParams(window.location.search).get("id");
   const typeEl = byId("type");
@@ -312,6 +322,7 @@ async function initEditTransactionForm() {
   await loadTransactionForEdit(id);
 }
 
+/** Busca o lancamento e preenche o formulario de edicao. */
 async function loadTransactionForEdit(id) {
   const session = await getSession();
   if (!session?.user) {
@@ -344,6 +355,7 @@ async function loadTransactionForEdit(id) {
   byId("currentReceiptBox")?.classList.toggle("hidden", !data.receipt_path);
 }
 
+/** Configura eventos e carrega o gerenciador de categorias. */
 async function initCategories() {
   byId("btnAddCategory")?.addEventListener("click", addCategory);
   byId("btnSaveCategories")?.addEventListener("click", saveCategoryChanges);
@@ -355,6 +367,7 @@ async function initCategories() {
   await loadCategoryList();
 }
 
+/** Configura filtros e eventos da tela de relatorios. */
 function initReports() {
   const now = new Date();
   const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -377,6 +390,7 @@ function initReports() {
   onReportTypeChange();
 }
 
+/** Valida a sessao e redireciona usuarios nao autenticados. */
 async function requireSession() {
   const session = await getSession();
 
@@ -390,6 +404,7 @@ async function requireSession() {
   return true;
 }
 
+/** Encerra a sessao e retorna para a tela inicial. */
 async function onLogout() {
   clearPersistedSession();
   showToast("Logout realizado!", "error");
@@ -398,6 +413,7 @@ async function onLogout() {
   }, 300);
 }
 
+/** Monitora inatividade para encerrar sessoes expiradas. */
 function setupInactivityControl() {
   ACTIVITY_EVENTS.forEach(eventName => {
     window.addEventListener(eventName, async () => {
@@ -429,6 +445,7 @@ function setupInactivityControl() {
   }, 60 * 1000);
 }
 
+/** Registra o instante da ultima atividade do usuario. */
 function markActivity(force = false) {
   const now = Date.now();
 
@@ -440,6 +457,7 @@ function markActivity(force = false) {
   sessionStorage.setItem(LAST_ACTIVITY_KEY, String(now));
 }
 
+/** Verifica se o limite de inatividade foi ultrapassado. */
 function isSessionExpired() {
   const lastActivityAt = Number(sessionStorage.getItem(LAST_ACTIVITY_KEY));
 
@@ -450,6 +468,7 @@ function isSessionExpired() {
   return Date.now() - lastActivityAt > SESSION_TIMEOUT_MS;
 }
 
+/** Limpa a sessao expirada e redireciona para o login. */
 async function expireSession() {
   if (expiringSession) {
     return;
@@ -464,6 +483,7 @@ async function expireSession() {
   }
 }
 
+/** Remove os dados de autenticacao persistidos na aba. */
 function clearPersistedSession() {
   supabase.auth.signOut().catch(() => {});
 
@@ -476,6 +496,7 @@ function clearPersistedSession() {
   sessionStorage.clear();
 }
 
+/** Remove sessoes antigas salvas no armazenamento local. */
 function clearLegacyLocalStorageSession() {
   Object.keys(localStorage).forEach(key => {
     if (key.startsWith("sb-") || key === LAST_ACTIVITY_KEY) {
@@ -484,6 +505,7 @@ function clearLegacyLocalStorageSession() {
   });
 }
 
+/** Valida e cadastra um novo lancamento. */
 async function onAddTransaction(mode = "continue") {
   setTxStatus("");
 
@@ -574,6 +596,7 @@ async function onAddTransaction(mode = "continue") {
   amountEl.focus();
 }
 
+/** Valida e salva as alteracoes de um lancamento. */
 async function updateTransaction(id) {
   setTxStatus("");
 
@@ -651,6 +674,7 @@ async function updateTransaction(id) {
   }, 1200);
 }
 
+/** Abre o comprovante armazenado em uma nova aba. */
 async function openReceipt(path) {
   const { data, error } = await supabase.storage
     .from("receipts")
@@ -664,6 +688,7 @@ async function openReceipt(path) {
   window.open(data.signedUrl, "_blank");
 }
 
+/** Carrega os periodos atual e anterior e atualiza o painel. */
 async function loadTransactions() {
   const session = await getSession();
   if (!session?.user) {
@@ -698,6 +723,7 @@ async function loadTransactions() {
   updateDashboard(currentTransactions, previousData || [], { start, end }, previousPeriod);
 }
 
+/** Consulta lancamentos do usuario dentro de um periodo. */
 async function queryTransactions(userId, start, end) {
   let query = supabase
     .from(TABLE_NAME)
@@ -716,6 +742,7 @@ async function queryTransactions(userId, start, end) {
   return await query;
 }
 
+/** Preenche a tabela com os lancamentos consultados. */
 function renderTable(list) {
   const transactionsTable = byId("transactionsTable");
   if (!transactionsTable) {
@@ -749,6 +776,7 @@ function renderTable(list) {
   }
 }
 
+/** Trata as acoes de editar, excluir e abrir comprovante. */
 async function onTransactionTableClick(e) {
   const btnDelete = e.target.closest(".action-delete");
   if (btnDelete) {
@@ -768,6 +796,7 @@ async function onTransactionTableClick(e) {
   }
 }
 
+/** Confirma e exclui um lancamento e seu comprovante. */
 async function deleteTransaction(id) {
   const { data: tx, error: fetchError } = await supabase
     .from(TABLE_NAME)
@@ -804,6 +833,7 @@ async function deleteTransaction(id) {
   await loadTransactions();
 }
 
+/** Atualiza indicadores, graficos e analises do painel web. */
 function updateDashboard(list, previousList, period, previousPeriod) {
   const kpiIncome = byId("kpiIncome");
   const kpiExpense = byId("kpiExpense");
@@ -830,6 +860,7 @@ function updateDashboard(list, previousList, period, previousPeriod) {
   renderDashboardInsights(summary, previousSummary, period, previousPeriod);
 }
 
+/** Renderiza as despesas agrupadas por categoria. */
 function renderCategoryBarChart(expenseByCategory) {
   const canvas = byId("categoryBarChart");
   if (!canvas || !window.Chart) {
@@ -880,6 +911,7 @@ function renderCategoryBarChart(expenseByCategory) {
   });
 }
 
+/** Renderiza a comparacao entre receitas e despesas. */
 function renderBarChart(income, expense) {
   const canvas = byId("barChart");
   if (!canvas || !window.Chart) {
@@ -925,6 +957,7 @@ function renderBarChart(income, expense) {
   });
 }
 
+/** Renderiza a evolucao diaria de receitas, despesas e saldo. */
 function renderBalanceLineChart(list, period) {
   const canvas = byId("balanceLineChart");
   if (!canvas || !window.Chart) {
@@ -990,6 +1023,7 @@ function renderBalanceLineChart(list, period) {
   });
 }
 
+/** Calcula e exibe a variacao de um indicador. */
 function updateKpiDelta(elementId, currentValue, previousValue, label, invertGood = false) {
   const el = byId(elementId);
   if (!el) {
@@ -1005,6 +1039,7 @@ function updateKpiDelta(elementId, currentValue, previousValue, label, invertGoo
   el.textContent = `${label}: ${formatMoney(previousValue)} | ${formatMoney(diff)} (${formatPercent(percent)})`;
 }
 
+/** Exibe analises resumidas do periodo selecionado. */
 function renderDashboardInsights(summary, previousSummary, period, previousPeriod) {
   const list = byId("dashboardInsights");
   if (!list) {
@@ -1038,6 +1073,7 @@ function renderDashboardInsights(summary, previousSummary, period, previousPerio
   list.innerHTML = insights.map(item => `<li>${item}</li>`).join("");
 }
 
+/** Calcula os pontos diarios usados no grafico de evolucao. */
 function buildDailyBalancePoints(list, start, end) {
   const dates = getDateRange(start, end);
   const byDate = {};
@@ -1071,6 +1107,7 @@ function buildDailyBalancePoints(list, start, end) {
   });
 }
 
+/** Calcula o periodo anterior com a mesma duracao. */
 function getPreviousPeriod(start, end) {
   if (!start || !end) {
     const now = new Date();
@@ -1100,6 +1137,7 @@ function getPreviousPeriod(start, end) {
   };
 }
 
+/** Retorna todas as datas existentes entre os limites informados. */
 function getDateRange(start, end) {
   if (!start || !end) {
     return [];
@@ -1117,11 +1155,13 @@ function getDateRange(start, end) {
   return dates;
 }
 
+/** Converte uma data de formulario em objeto Date. */
 function parseInputDate(value) {
   const [year, month, day] = value.split("-").map(Number);
   return new Date(year, month - 1, day);
 }
 
+/** Formata valores monetarios de forma abreviada. */
 function formatCompactMoney(value) {
   return value.toLocaleString("pt-BR", {
     style: "currency",
@@ -1131,6 +1171,7 @@ function formatCompactMoney(value) {
   });
 }
 
+/** Calcula e formata a participacao percentual no total. */
 function formatPercentOfTotal(value, total) {
   if (!total) {
     return "0,0%";
@@ -1142,6 +1183,7 @@ function formatPercentOfTotal(value, total) {
   })}%`;
 }
 
+/** Traduz erros conhecidos do envio de comprovantes. */
 function receiptUploadMessage(error) {
   const message = error?.message || String(error);
   if (message.includes("row-level security") || message.includes("Unauthorized")) {
@@ -1150,12 +1192,14 @@ function receiptUploadMessage(error) {
   return message;
 }
 
+/** Ajusta os campos conforme o tipo de relatorio. */
 function onReportTypeChange() {
   const isComparison = byId("reportType")?.value === "comparison";
   byId("comparisonPeriodFields")?.classList.toggle("hidden", !isComparison);
   invalidateReportPreview();
 }
 
+/** Descarta a previa quando os filtros sao alterados. */
 function invalidateReportPreview() {
   byId("btnDownloadReport").disabled = true;
   byId("reportPreviewSection")?.classList.add("hidden");
@@ -1163,6 +1207,7 @@ function invalidateReportPreview() {
   setReportStatus("");
 }
 
+/** Consulta dados e monta a previa do relatorio. */
 async function previewReport() {
   setReportStatus("");
   byId("btnDownloadReport").disabled = true;
@@ -1220,6 +1265,7 @@ async function previewReport() {
   renderReportPreview(currentReportPreview);
 }
 
+/** Carrega os lancamentos existentes entre duas datas. */
 async function loadTransactionsBetween(start, end) {
   const session = await getSession();
   if (!session?.user) {
@@ -1243,6 +1289,7 @@ async function loadTransactionsBetween(start, end) {
   return data || [];
 }
 
+/** Calcula totais e agrupamentos de uma lista de lancamentos. */
 function summarizeTransactions(list) {
   const summary = {
     income: 0,
@@ -1268,6 +1315,7 @@ function summarizeTransactions(list) {
   return summary;
 }
 
+/** Monta o conteudo HTML da previa do relatorio. */
 function renderReportPreview(report) {
   const preview = byId("reportPreview");
   const previewSection = byId("reportPreviewSection");
@@ -1335,6 +1383,7 @@ function renderReportPreview(report) {
   });
 }
 
+/** Retorna a estrutura HTML reservada aos graficos do relatorio. */
 function reportChartsHtml() {
   return `
     <div class="content-grid dashboard-charts report-chart-grid">
@@ -1360,12 +1409,14 @@ function reportChartsHtml() {
   `;
 }
 
+/** Renderiza todos os graficos presentes na previa. */
 function renderReportCharts(report) {
   renderReportTypeChart(report.primary.summary);
   renderReportCategoryChart(report.primary.summary.byCategory);
   renderReportBalanceChart(report.primary.transactions, report.primary);
 }
 
+/** Renderiza receitas e despesas do relatorio. */
 function renderReportTypeChart(summary) {
   const canvas = byId("reportTypeChart");
   if (!canvas || !window.Chart) {
@@ -1407,6 +1458,7 @@ function renderReportTypeChart(summary) {
   });
 }
 
+/** Renderiza despesas por categoria no relatorio. */
 function renderReportCategoryChart(byCategory) {
   const canvas = byId("reportCategoryChart");
   if (!canvas || !window.Chart) {
@@ -1454,6 +1506,7 @@ function renderReportCategoryChart(byCategory) {
   });
 }
 
+/** Renderiza a evolucao financeira do relatorio. */
 function renderReportBalanceChart(transactions, period) {
   const canvas = byId("reportBalanceChart");
   if (!canvas || !window.Chart) {
@@ -1519,6 +1572,7 @@ function renderReportBalanceChart(transactions, period) {
   });
 }
 
+/** Monta os cartoes com totais do resumo financeiro. */
 function summaryCards(summary) {
   return `
     <div class="kpis report-kpis">
@@ -1538,6 +1592,7 @@ function summaryCards(summary) {
   `;
 }
 
+/** Monta uma linha comparando valores de dois periodos. */
 function comparisonRow(label, primaryValue, comparisonValue) {
   const diff = primaryValue - comparisonValue;
   const percent = variationPercent(primaryValue, comparisonValue);
@@ -1552,6 +1607,7 @@ function comparisonRow(label, primaryValue, comparisonValue) {
   `;
 }
 
+/** Monta a lista HTML de analises comparativas. */
 function comparisonInsightsHtml(insights) {
   return `
     <div class="report-insights">
@@ -1567,6 +1623,7 @@ function comparisonInsightsHtml(insights) {
   `;
 }
 
+/** Gera analises a partir das diferencas entre periodos. */
 function buildComparisonInsights(primary, comparison) {
   const incomeDiff = primary.income - comparison.income;
   const expenseDiff = primary.expense - comparison.expense;
@@ -1593,6 +1650,7 @@ function buildComparisonInsights(primary, comparison) {
   };
 }
 
+/** Descreve a variacao de um indicador financeiro. */
 function describeVariation(label, diff, primaryValue, comparisonValue) {
   const percent = formatPercent(variationPercent(primaryValue, comparisonValue));
 
@@ -1607,6 +1665,7 @@ function describeVariation(label, diff, primaryValue, comparisonValue) {
   return `${label} permaneceram iguais nos dois periodos.`;
 }
 
+/** Identifica a categoria com maior valor. */
 function topCategory(byCategory) {
   const entries = Object.entries(byCategory);
   if (!entries.length) {
@@ -1617,6 +1676,7 @@ function topCategory(byCategory) {
   return { name, value };
 }
 
+/** Calcula a variacao percentual entre dois valores. */
 function variationPercent(primaryValue, comparisonValue) {
   if (comparisonValue === 0) {
     return primaryValue === 0 ? 0 : 100;
@@ -1625,6 +1685,7 @@ function variationPercent(primaryValue, comparisonValue) {
   return ((primaryValue - comparisonValue) / Math.abs(comparisonValue)) * 100;
 }
 
+/** Formata um numero como percentual com sinal. */
 function formatPercent(value) {
   return `${value >= 0 ? "+" : ""}${value.toLocaleString("pt-BR", {
     minimumFractionDigits: 1,
@@ -1632,6 +1693,7 @@ function formatPercent(value) {
   })}%`;
 }
 
+/** Monta a tabela de valores agrupados por categoria. */
 function categoryTable(byCategory) {
   const rows = Object.entries(byCategory)
     .sort((a, b) => b[1] - a[1])
@@ -1653,6 +1715,7 @@ function categoryTable(byCategory) {
   `;
 }
 
+/** Monta a tabela detalhada de lancamentos. */
 function transactionTable(transactions) {
   const rows = transactions.map(t => `
     <tr>
@@ -1682,6 +1745,7 @@ function transactionTable(transactions) {
   `;
 }
 
+/** Gera e baixa o PDF a partir da previa atual. */
 function downloadReportPdf() {
   if (!currentReportPreview) {
     setReportError("Visualize o relatorio antes de baixar o PDF.");
@@ -1745,6 +1809,7 @@ function downloadReportPdf() {
   doc.save(`relatorio-${report.type}-${report.primary.start}-${report.primary.end}.pdf`);
 }
 
+/** Adiciona imagens dos graficos ao documento PDF. */
 function addReportChartsToPdf(doc, startY) {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -1783,6 +1848,7 @@ function addReportChartsToPdf(doc, startY) {
   return y + 4;
 }
 
+/** Ajusta uma imagem aos limites disponiveis no PDF. */
 function fitImageSize(canvas, maxWidth, maxHeight) {
   const naturalWidth = canvas.width || canvas.offsetWidth || maxWidth;
   const naturalHeight = canvas.height || canvas.offsetHeight || maxHeight;
@@ -1794,6 +1860,7 @@ function fitImageSize(canvas, maxWidth, maxHeight) {
   };
 }
 
+/** Adiciona os totais financeiros ao documento PDF. */
 function addSummaryToPdf(doc, summary, startY) {
   doc.text(`Receitas: ${formatMoney(summary.income)}`, 14, startY);
   doc.text(`Despesas: ${formatMoney(summary.expense)}`, 14, startY + 8);
@@ -1802,6 +1869,7 @@ function addSummaryToPdf(doc, summary, startY) {
   return startY + 34;
 }
 
+/** Formata uma linha comparativa para o PDF. */
 function comparisonPdfRow(label, primaryValue, comparisonValue) {
   return [
     label,
@@ -1812,6 +1880,7 @@ function comparisonPdfRow(label, primaryValue, comparisonValue) {
   ];
 }
 
+/** Adiciona analises comparativas ao documento PDF. */
 function addComparisonInsightsToPdf(doc, primary, comparison, startY) {
   const insights = buildComparisonInsights(primary, comparison);
   const lines = [
@@ -1833,6 +1902,7 @@ function addComparisonInsightsToPdf(doc, primary, comparison, startY) {
   return y + 4;
 }
 
+/** Retorna o titulo correspondente ao tipo de relatorio. */
 function reportTitle(type) {
   const titles = {
     summary: "Resumo financeiro do periodo",
@@ -1843,6 +1913,7 @@ function reportTitle(type) {
   return titles[type] || "Relatorio";
 }
 
+/** Valida e cadastra uma categoria personalizada. */
 async function addCategory() {
   const nameEl = byId("newCategoryName");
   const typeEl = byId("newCategoryType");
@@ -1892,6 +1963,7 @@ async function addCategory() {
   await loadCategoryList();
 }
 
+/** Carrega categorias e preferencias do usuario. */
 async function loadCategoryList() {
   const session = await getSession();
   const categoryList = byId("categoryList");
@@ -1941,6 +2013,7 @@ async function loadCategoryList() {
   renderCategoryList();
 }
 
+/** Preenche a lista de gerenciamento de categorias. */
 function renderCategoryList() {
   const categoryList = byId("categoryList");
   if (!categoryList) {
@@ -1990,6 +2063,7 @@ function renderCategoryList() {
   });
 }
 
+/** Trata as acoes de editar e excluir categorias. */
 async function onCategoryListClick(e) {
   const session = await getSession();
   if (!session?.user) {
@@ -2076,6 +2150,7 @@ async function onCategoryListClick(e) {
   }
 }
 
+/** Registra alteracoes de visibilidade das categorias. */
 function onCategoryListChange(e) {
   const id = e.target.dataset.hide;
   if (!id) {
@@ -2089,6 +2164,7 @@ function onCategoryListChange(e) {
   }
 }
 
+/** Salva as preferencias de visibilidade alteradas. */
 async function saveCategoryChanges() {
   const session = await getSession();
 
@@ -2119,6 +2195,7 @@ async function saveCategoryChanges() {
   showToast("Categorias atualizadas!");
 }
 
+/** Carrega no formulario as categorias do tipo selecionado. */
 async function loadCategoryOptions() {
   const session = await getSession();
   const categoryEl = byId("category");
@@ -2178,6 +2255,7 @@ async function loadCategoryOptions() {
   });
 }
 
+/** Seleciona uma categoria, incluindo valores antigos ocultos. */
 function setCategoryValue(categoryName) {
   const categoryEl = byId("category");
   if (!categoryEl || !categoryName) {
@@ -2197,6 +2275,7 @@ function setCategoryValue(categoryName) {
   categoryEl.value = categoryName;
 }
 
+/** Aplica uma animacao durante mudancas do periodo. */
 function animateRangeChange(callback) {
   const content = document.querySelectorAll(".content-grid, .kpis, .table-wrap");
 
@@ -2216,6 +2295,7 @@ function animateRangeChange(callback) {
   }, 250);
 }
 
+/** Adiciona o efeito visual de clique aos botoes. */
 function setupRipple() {
   document.addEventListener("click", e => {
     const btn = e.target.closest(".btn");
@@ -2242,6 +2322,7 @@ function setupRipple() {
   });
 }
 
+/** Formata um valor em moeda brasileira. */
 function formatMoney(value) {
   return value.toLocaleString("pt-BR", {
     style: "currency",
@@ -2249,6 +2330,7 @@ function formatMoney(value) {
   });
 }
 
+/** Formata uma data para exibicao em portugues. */
 function formatDate(isoDate) {
   if (!isoDate) {
     return "";
@@ -2258,6 +2340,7 @@ function formatDate(isoDate) {
   return `${day}/${month}/${year}`;
 }
 
+/** Converte data e hora para o formato de campos locais. */
 function formatDateTimeLocal(isoDateTime) {
   if (!isoDateTime) {
     return "";
@@ -2269,10 +2352,12 @@ function formatDateTimeLocal(isoDateTime) {
   });
 }
 
+/** Retorna a data atual no formato ISO. */
 function todayISO() {
   return dateToInputValue(new Date());
 }
 
+/** Converte um objeto Date para o formato de campos date. */
 function dateToInputValue(date) {
   const d = new Date();
   d.setTime(date.getTime());
@@ -2283,6 +2368,7 @@ function dateToInputValue(date) {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+/** Limpa a mensagem apresentada nos formularios de acesso. */
 function clearAuthStatus() {
   const authStatus = byId("authStatus");
   if (authStatus) {
@@ -2290,6 +2376,7 @@ function clearAuthStatus() {
   }
 }
 
+/** Exibe uma mensagem de erro de autenticacao. */
 function setAuthError(msg) {
   const authStatus = byId("authStatus");
   if (authStatus) {
@@ -2298,6 +2385,7 @@ function setAuthError(msg) {
   }
 }
 
+/** Exibe uma mensagem de sucesso de autenticacao. */
 function setAuthSuccess(msg) {
   const authStatus = byId("authStatus");
   if (authStatus) {
@@ -2306,6 +2394,7 @@ function setAuthSuccess(msg) {
   }
 }
 
+/** Define a mensagem neutra do formulario de lancamento. */
 function setTxStatus(msg) {
   const txStatus = byId("txStatus");
   if (txStatus) {
@@ -2313,6 +2402,7 @@ function setTxStatus(msg) {
   }
 }
 
+/** Exibe um erro no formulario de lancamento. */
 function setTxError(msg) {
   const txStatus = byId("txStatus");
   if (txStatus) {
@@ -2321,6 +2411,7 @@ function setTxError(msg) {
   }
 }
 
+/** Exibe uma confirmacao no formulario de lancamento. */
 function setTxSuccess(msg) {
   const txStatus = byId("txStatus");
   if (txStatus) {
@@ -2329,6 +2420,7 @@ function setTxSuccess(msg) {
   }
 }
 
+/** Exibe um erro no gerenciador de categorias. */
 function setCategoryError(msg) {
   const categoryStatus = byId("categoryStatus");
   if (categoryStatus) {
@@ -2337,6 +2429,7 @@ function setCategoryError(msg) {
   }
 }
 
+/** Define a mensagem neutra da tela de relatorios. */
 function setReportStatus(msg) {
   const reportStatus = byId("reportStatus");
   if (reportStatus) {
@@ -2345,6 +2438,7 @@ function setReportStatus(msg) {
   }
 }
 
+/** Exibe um erro na tela de relatorios. */
 function setReportError(msg) {
   const reportStatus = byId("reportStatus");
   if (reportStatus) {
@@ -2353,6 +2447,7 @@ function setReportError(msg) {
   }
 }
 
+/** Exibe uma notificacao temporaria na pagina. */
 function showToast(message, type = "success") {
   const toast = byId("toast");
   if (!toast) {
@@ -2371,6 +2466,7 @@ function showToast(message, type = "success") {
   }, 2500);
 }
 
+/** Localiza um elemento da pagina pelo identificador. */
 function byId(id) {
   return document.getElementById(id);
 }

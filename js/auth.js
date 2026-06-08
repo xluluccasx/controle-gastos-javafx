@@ -1,6 +1,8 @@
+/** Concentra as operacoes de autenticacao feitas pelo cliente web. */
 import { supabase } from "./supabase.js";
 import { AUTH_REDIRECT_URL } from "./config.js";
 
+/** Cadastra o usuario usando a autenticacao do Supabase. */
 export async function signUp(email, password) {
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -14,6 +16,7 @@ export async function signUp(email, password) {
   return data;
 }
 
+/** Autentica o usuario usando email e senha. */
 export async function signIn(email, password) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
@@ -24,17 +27,20 @@ export async function signIn(email, password) {
   return data;
 }
 
+/** Encerra a sessao no Supabase. */
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
   if (error) throw new Error(error.message);
 }
 
+/** Retorna a sessao de autenticacao atual. */
 export async function getSession() {
   const { data, error } = await supabase.auth.getSession();
   if (error) throw new Error(error.message);
   return data.session;
 }
 
+/** Solicita o envio do email de recuperacao de senha. */
 export async function forgotPassword(email) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: AUTH_REDIRECT_URL
@@ -42,6 +48,7 @@ export async function forgotPassword(email) {
   if (error) throw new Error(mapAuthError(error));
 }
 
+/** Traduz erros conhecidos de autenticacao. */
 function mapAuthError(error) {
   const msg = error?.message || "";
 

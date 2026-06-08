@@ -35,6 +35,9 @@ import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+/**
+ * Constroi o painel JavaFX e coordena indicadores, graficos, lancamentos e relatorios.
+ */
 public class DashboardView {
     private static final NumberFormat BRL = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -65,6 +68,7 @@ public class DashboardView {
     private final Map<String, Boolean> dashboardLineVisibility = new HashMap<>();
     private final Map<String, Boolean> reportLineVisibility = new HashMap<>();
 
+    /** Inicializa o painel, seus graficos e os dados do periodo atual. */
     public DashboardView(Stage stage) {
         this.stage = stage;
         categoryChart = new BarChart<>(new CategoryAxis(), new NumberAxis());
@@ -74,10 +78,12 @@ public class DashboardView {
         refresh();
     }
 
+    /** Retorna o componente raiz que sera exibido na cena. */
     public Parent getRoot() {
         return root;
     }
 
+    /** Monta os componentes e eventos da tela. */
     private void build() {
         LocalDate now = LocalDate.now();
         startDate.setValue(YearMonth.from(now).atDay(1));
@@ -182,6 +188,7 @@ public class DashboardView {
         });
     }
 
+    /** Configura titulos, legendas e animacoes dos graficos. */
     private void setupCharts() {
         categoryChart.setLegendVisible(false);
         categoryChart.setAnimated(false);
@@ -198,6 +205,7 @@ public class DashboardView {
         balanceChart.setCreateSymbols(false);
     }
 
+    /** Configura colunas e acoes da tabela de lancamentos. */
     private void setupTable() {
         table.setItems(rows);
         table.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY_ALL_COLUMNS);
@@ -224,6 +232,7 @@ public class DashboardView {
                 receipt.setOnAction(e -> onOpenReceipt(getTableView().getItems().get(getIndex())));
                 box.setAlignment(Pos.CENTER_LEFT);
             }
+            /** Atualiza o conteudo visual da celula reutilizada pelo JavaFX. */
             @Override
             protected void updateItem(Void item, boolean empty) {
                 super.updateItem(item, empty);
@@ -248,6 +257,7 @@ public class DashboardView {
         return col;
     }
 
+    /** Recarrega os lancamentos e atualiza todos os dados do painel. */
     private void refresh() {
         try {
             LocalDate start = startDate.getValue();
@@ -266,6 +276,7 @@ public class DashboardView {
         }
     }
 
+    /** Atualiza indicadores, graficos e analises do painel. */
     private void updateDashboard(List<Transaction> current, List<Transaction> previous, LocalDate start, LocalDate end, Period previousPeriod) {
         Summary summary = summarize(current);
         Summary previousSummary = summarize(previous);
@@ -283,6 +294,7 @@ public class DashboardView {
         renderBalanceChart(current, start, end);
     }
 
+    /** Calcula e apresenta a variacao percentual de um indicador. */
     private void setDelta(Label label, BigDecimal current, BigDecimal previous, boolean invertGood) {
         BigDecimal diff = current.subtract(previous);
         double percent = previous.compareTo(BigDecimal.ZERO) == 0
@@ -293,6 +305,7 @@ public class DashboardView {
         label.setStyle("-fx-font-size: 13px; -fx-text-fill: " + (diff.signum() == 0 ? "#6b7280" : good ? "#047857" : "#b91c1c") + ";");
     }
 
+    /** Gera analises curtas comparando o periodo atual ao anterior. */
     private void renderInsights(Summary s, Summary p, LocalDate start, LocalDate end, Period previous) {
         Map.Entry<String, BigDecimal> top = s.topCategory();
         long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1);
@@ -318,6 +331,7 @@ public class DashboardView {
         insights.setItems(FXCollections.observableArrayList(lines));
     }
 
+    /** Preenche o grafico com despesas agrupadas por categoria. */
     private void renderCategoryChart(Map<String, BigDecimal> byCategory) {
         categoryChart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
@@ -329,6 +343,7 @@ public class DashboardView {
         Platform.runLater(() -> series.getData().forEach(d -> d.getNode().setStyle("-fx-bar-fill: #2f6fed;")));
     }
 
+    /** Preenche o grafico com despesas agrupadas por categoria. */
     private void renderCategoryChart(BarChart<String, Number> chart, Map<String, BigDecimal> byCategory) {
         chart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
@@ -340,6 +355,7 @@ public class DashboardView {
         Platform.runLater(() -> series.getData().forEach(d -> d.getNode().setStyle("-fx-bar-fill: #2f6fed;")));
     }
 
+    /** Preenche o grafico com os totais de receitas e despesas. */
     private void renderTypeChart(Summary s) {
         typeChart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
@@ -353,6 +369,7 @@ public class DashboardView {
         });
     }
 
+    /** Preenche o grafico com os totais de receitas e despesas. */
     private void renderTypeChart(BarChart<String, Number> chart, Summary s) {
         chart.getData().clear();
         XYChart.Series<String, Number> series = new XYChart.Series<>();
@@ -366,11 +383,13 @@ public class DashboardView {
         });
     }
 
+    /** Preenche o grafico com a evolucao diaria dos valores. */
     private void renderBalanceChart(List<Transaction> list, LocalDate start, LocalDate end) {
         balanceChart.getData().clear();
         renderBalanceChart(balanceChart, list, start, end, dashboardLineVisibility);
     }
 
+    /** Preenche o grafico com a evolucao diaria dos valores. */
     private void renderBalanceChart(LineChart<String, Number> chart, List<Transaction> list, LocalDate start, LocalDate end, Map<String, Boolean> visibility) {
         chart.getData().clear();
         Map<LocalDate, Summary> byDate = new HashMap<>();
@@ -406,6 +425,7 @@ public class DashboardView {
         });
     }
 
+    /** Aplica cor e espessura aos elementos de uma serie de linha. */
     private void styleLine(XYChart.Series<String, Number> series, String color) {
         if (series.getNode() != null) {
             series.getNode().setStyle("-fx-stroke: " + color + "; -fx-stroke-width: 2.5px;");
@@ -417,6 +437,7 @@ public class DashboardView {
         }
     }
 
+    /** Permite mostrar ou ocultar series ao clicar na legenda. */
     private void installLegendToggles(LineChart<String, Number> chart, Map<String, Boolean> visibility) {
         for (XYChart.Series<String, Number> series : chart.getData()) {
             visibility.putIfAbsent(series.getName(), true);
@@ -450,6 +471,7 @@ public class DashboardView {
         }
     }
 
+    /** Escolhe a cor visual correspondente a uma serie do grafico. */
     private String colorForSeries(String seriesName) {
         return switch (seriesName) {
             case "Receitas acumuladas" -> "#0f9f8f";
@@ -459,6 +481,7 @@ public class DashboardView {
         };
     }
 
+    /** Localiza recursivamente o texto de um item da legenda. */
     private Label findLegendLabel(Node node) {
         if (node instanceof Label label) {
             return label;
@@ -474,6 +497,7 @@ public class DashboardView {
         return null;
     }
 
+    /** Aplica a visibilidade escolhida a uma serie e seus pontos. */
     private void applySeriesVisibility(XYChart.Series<String, Number> series, boolean visible) {
         if (series.getNode() != null) {
             series.getNode().setVisible(visible);
@@ -487,6 +511,7 @@ public class DashboardView {
         }
     }
 
+    /** Abre o formulario e salva um novo lancamento. */
     private void onAdd() {
         boolean keepAdding;
         do {
@@ -507,6 +532,7 @@ public class DashboardView {
         } while (keepAdding);
     }
 
+    /** Abre o formulario e atualiza o lancamento selecionado. */
     private void onEdit(Transaction selected) {
         new TransactionFormDialog().showAndWait(stage, selected).ifPresent(result -> {
             try {
@@ -522,6 +548,7 @@ public class DashboardView {
         });
     }
 
+    /** Confirma e exclui o lancamento selecionado. */
     private void onDelete(Transaction selected) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION,
                 "Excluir lancamento de " + selected.getDate().format(DATE) + " (" + BRL.format(selected.getAmount()) + ")?",
@@ -539,6 +566,7 @@ public class DashboardView {
         });
     }
 
+    /** Abre o comprovante do lancamento no navegador padrao. */
     private void onOpenReceipt(Transaction tx) {
         try {
             String url = txService.createReceiptUrl(tx.getReceiptPath());
@@ -548,6 +576,7 @@ public class DashboardView {
         }
     }
 
+    /** Exibe o gerenciador de categorias do usuario. */
     private void showCategoriesDialog() {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Gerenciar categorias");
@@ -572,6 +601,7 @@ public class DashboardView {
         };
 
         list.setCellFactory(view -> new ListCell<>() {
+            /** Atualiza o conteudo visual da celula reutilizada pelo JavaFX. */
             @Override
             protected void updateItem(CategoryItem item, boolean empty) {
                 super.updateItem(item, empty);
@@ -653,6 +683,7 @@ public class DashboardView {
         dialog.showAndWait();
     }
 
+    /** Exibe os filtros, a previa e a exportacao de relatorios. */
     private void showReportsDialog() {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Relatorios PDF");
@@ -772,6 +803,7 @@ public class DashboardView {
         dialog.showAndWait();
     }
 
+    /** Monta os dados textuais e financeiros do relatorio escolhido. */
     private ReportData buildReport(int type, LocalDate start, LocalDate end, LocalDate compareStart, LocalDate compareEnd) throws Exception {
         if (start == null || end == null || start.isAfter(end)) {
             throw new IllegalArgumentException("Informe o periodo principal corretamente.");
@@ -810,6 +842,7 @@ public class DashboardView {
         return new ReportData(text.toString(), primary, summary);
     }
 
+    /** Acrescenta os totais financeiros ao texto do relatorio. */
     private void appendSummary(StringBuilder text, Summary summary) {
         text.append("Receitas: ").append(BRL.format(summary.income)).append("\n");
         text.append("Despesas: ").append(BRL.format(summary.expense)).append("\n");
@@ -817,6 +850,7 @@ public class DashboardView {
         text.append("Lancamentos: ").append(summary.count).append("\n");
     }
 
+    /** Gera uma analise textual da comparacao entre periodos. */
     private String buildComparisonInsight(Summary primary, Summary comparison) {
         BigDecimal balanceDiff = primary.balance().subtract(comparison.balance());
         BigDecimal expenseDiff = primary.expense.subtract(comparison.expense);
@@ -828,18 +862,21 @@ public class DashboardView {
                 : "Despesas aumentaram " + BRL.format(expenseDiff) + ".");
     }
 
+    /** Calcula receitas, despesas e saldo de uma lista de lancamentos. */
     private Summary summarize(List<Transaction> list) {
         Summary s = new Summary();
         list.forEach(s::add);
         return s;
     }
 
+    /** Calcula o periodo imediatamente anterior com a mesma duracao. */
     private Period previousPeriod(LocalDate start, LocalDate end) {
         long days = Math.max(1, java.time.temporal.ChronoUnit.DAYS.between(start, end) + 1);
         LocalDate previousEnd = start.minusDays(1);
         return new Period(previousEnd.minusDays(days - 1), previousEnd);
     }
 
+    /** Cria um cartao para apresentar um indicador financeiro. */
     private VBox kpi(String title, Label value, Label delta) {
         Label label = new Label(title);
         label.setStyle("-fx-text-fill: #667085; -fx-font-weight: 700;");
@@ -851,6 +888,7 @@ public class DashboardView {
         return box;
     }
 
+    /** Cria um cartao com titulo para acomodar um grafico. */
     private VBox chartCard(String title, Chart chart) {
         VBox box = new VBox(10, sectionTitle(title), chart);
         box.setPadding(new Insets(16));
@@ -858,6 +896,7 @@ public class DashboardView {
         return box;
     }
 
+    /** Agrupa um rotulo e seu controle de formulario. */
     private VBox field(String label, Control control) {
         Label l = new Label(label);
         l.setStyle("-fx-font-size: 12px; -fx-font-weight: 700; -fx-text-fill: #667085;");
@@ -865,44 +904,53 @@ public class DashboardView {
         return new VBox(4, l, control);
     }
 
+    /** Cria o titulo visual de uma secao. */
     private Label sectionTitle(String text) {
         Label label = new Label(text);
         label.setStyle("-fx-font-size: 18px; -fx-font-weight: 800; -fx-text-fill: #172033;");
         return label;
     }
 
+    /** Cria um botao para a acao principal. */
     private Button primaryButton(String text) {
         return button(text, "#2f6fed", "#ffffff");
     }
 
+    /** Cria um botao para uma acao secundaria. */
     private Button secondaryButton(String text) {
         return button(text, "#0f9f8f", "#ffffff");
     }
 
+    /** Cria um botao para acoes destrutivas ou de saida. */
     private Button dangerButton(String text) {
         return button(text, "#dc2626", "#ffffff");
     }
 
+    /** Cria um botao neutro para acoes auxiliares. */
     private Button lightButton(String text) {
         return button(text, "#e9eef5", "#172033");
     }
 
+    /** Cria um botao com as cores informadas. */
     private Button button(String text, String bg, String fg) {
         Button b = new Button(text);
         b.setStyle("-fx-background-color: " + bg + "; -fx-text-fill: " + fg + "; -fx-font-weight: 700; -fx-background-radius: 8; -fx-padding: 10 15; -fx-cursor: hand;");
         return b;
     }
 
+    /** Retorna o estilo visual compartilhado pelos cartoes do painel. */
     private String cardStyle() {
         return "-fx-background-color: white; -fx-background-radius: 8; -fx-border-color: #dbe3ee; -fx-border-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(15,23,42,0.08), 22, 0, 0, 8);";
     }
 
+    /** Exibe uma mensagem modal ao usuario. */
     private void alert(Alert.AlertType type, String message) {
         Alert alert = new Alert(type, message, ButtonType.OK);
         alert.initOwner(stage);
         alert.showAndWait();
     }
 
+    /** Calcula quanto um valor representa do total. */
     private String percentOf(BigDecimal value, BigDecimal total) {
         if (total.compareTo(BigDecimal.ZERO) == 0) {
             return "0,0%";
@@ -911,10 +959,12 @@ public class DashboardView {
         return String.format(Locale.forLanguageTag("pt-BR"), "%.1f%%", percent);
     }
 
+    /** Formata um percentual incluindo seu sinal. */
     private String signedPercent(double value) {
         return (value >= 0 ? "+" : "") + String.format(Locale.forLanguageTag("pt-BR"), "%.1f%%", value);
     }
 
+    /** Grava um relatorio textual em um arquivo PDF simples. */
     private void writeSimplePdf(Path path, String text) throws Exception {
         List<String> lines = Arrays.stream(text.split("\\R"))
                 .flatMap(line -> wrap(line, 94).stream())
@@ -955,6 +1005,7 @@ public class DashboardView {
         Files.writeString(path, pdf.toString(), StandardCharsets.ISO_8859_1);
     }
 
+    /** Quebra um texto em linhas de tamanho limitado. */
     private List<String> wrap(String line, int size) {
         if (line.length() <= size) return List.of(line);
         List<String> out = new ArrayList<>();
@@ -969,11 +1020,14 @@ public class DashboardView {
         return out;
     }
 
+    /** Escapa caracteres reservados da sintaxe PDF. */
     private String pdfEscape(String line) {
         return line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)");
     }
 
+    /** Agrupa as datas inicial e final de um periodo. */
     private record Period(LocalDate start, LocalDate end) {}
+    /** Agrupa o texto, os lancamentos e o resumo usados no relatorio. */
     private record ReportData(String text, List<Transaction> transactions, Summary summary) {}
 
     private static class Summary {

@@ -1,3 +1,4 @@
+/** Processa o retorno enviado pelo Supabase para confirmar o acesso do usuario. */
 import { supabase } from "./supabase.js";
 
 const statusEl = document.getElementById("confirmStatus");
@@ -5,6 +6,7 @@ const loginUrl = new URL("index.html", window.location.href);
 
 confirmAuthRedirect();
 
+/** Confirma o codigo ou token recebido no redirecionamento. */
 async function confirmAuthRedirect() {
   setStatus("Confirmando acesso...");
 
@@ -39,6 +41,7 @@ async function confirmAuthRedirect() {
   }
 }
 
+/** Atualiza a mensagem exibida na tela de confirmacao. */
 function setStatus(message) {
   if (statusEl) {
     statusEl.textContent = message;

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+<!-- Pagina inicial com acesso ao aplicativo web e ao instalador desktop. -->
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,6 +9,7 @@
 </head>
 <body>
 <div class="page">
+    <!-- Cabecalho com identificacao da pagina e acoes de navegacao. -->
     <header class="topbar">
         <div>
             <h1>Controle de Gastos</h1>
@@ -15,7 +17,9 @@
         </div>
     </header>
 
+    <!-- Conteudo principal desta tela. -->
     <main>
+        <!-- Agrupa os dados e controles desta etapa da interface. -->
         <section class="card download-card">
             <div>
                 <h2>Aplicativo para Windows</h2>
@@ -24,6 +28,7 @@
             <a class="btn btn-primary" href="downloads/Controle-de-Gastos-Setup.exe" download>Baixar instalador</a>
         </section>
 
+        <!-- Agrupa os dados e controles desta etapa da interface. -->
         <section class="card auth-card">
             <h2>Acesso</h2>
 
@@ -50,6 +55,7 @@
     </main>
 </div>
 <div id="toast" class="toast"></div>
+<!-- Carrega a logica da pagina como modulo JavaScript. -->
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

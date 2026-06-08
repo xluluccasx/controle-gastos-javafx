@@ -6,8 +6,12 @@ import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+/**
+ * Ponto de entrada JavaFX que cria a janela principal e exibe a tela de login.
+ */
 public class MainApp extends Application {
 
+    /** Configura o palco principal e apresenta a primeira tela. */
     @Override
     public void start(Stage stage) {
         stage.setTitle("Controle de Gastos - Netto");
@@ -20,6 +24,7 @@ public class MainApp extends Application {
         stage.show();
     }
 
+    /** Inicia a aplicacao. */
     public static void main(String[] args) {
         launch(args);
     }

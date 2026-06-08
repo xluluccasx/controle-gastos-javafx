@@ -17,6 +17,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+/**
+ * Constroi a tela JavaFX de cadastro e valida a forca da senha.
+ */
 public class SignupView {
 
     private static final String ERROR_STYLE = "-fx-text-fill: #b00020;";
@@ -27,16 +30,19 @@ public class SignupView {
     private final AuthService auth = new AuthService();
     private final BorderPane root = new BorderPane();
 
+    /** Inicializa a tela de cadastro e preenche o email recebido. */
     public SignupView(Stage stage, String initialEmail) {
         this.stage = stage;
         this.initialEmail = initialEmail == null ? "" : initialEmail;
         build();
     }
 
+    /** Retorna o componente raiz que sera exibido na cena. */
     public Parent getRoot() {
         return root;
     }
 
+    /** Monta os componentes e eventos da tela. */
     private void build() {
         Label title = new Label("Controle de Gastos");
         title.setStyle("-fx-font-size: 30px; -fx-font-weight: 800; -fx-text-fill: #172033;");
@@ -145,6 +151,7 @@ public class SignupView {
         btnBack.setOnAction(e -> showLogin(email.getText().trim()));
     }
 
+    /** Retorna para a cena de login. */
     private void showLogin(String email) {
         LoginView loginView = new LoginView(stage);
         Scene scene = new Scene(loginView.getRoot(), 980, 640);
@@ -152,6 +159,7 @@ public class SignupView {
         stage.setScene(scene);
     }
 
+    /** Atualiza a barra e o texto de forca da senha. */
     private void updateStrength(String password, ProgressBar strengthBar, Label strengthLabel) {
         PasswordStrength strength = evaluatePassword(password);
         strengthBar.setProgress(strength.score / 5.0);
@@ -159,6 +167,7 @@ public class SignupView {
         strengthLabel.setStyle("-fx-text-fill: " + strength.color + ";");
     }
 
+    /** Pontua a senha conforme tamanho e variedade de caracteres. */
     private PasswordStrength evaluatePassword(String password) {
         if (password == null || password.isBlank()) {
             return new PasswordStrength(0, "informe uma senha", "#6b7280");
@@ -180,6 +189,7 @@ public class SignupView {
         return new PasswordStrength(score, "Forte", "#0b6b2b");
     }
 
+    /** Agrupa a pontuacao e a apresentacao visual da forca da senha. */
     private record PasswordStrength(int score, String label, String color) {
     }
 }

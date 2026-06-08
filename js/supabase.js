@@ -1,3 +1,4 @@
+/** Cria e exporta o cliente Supabase compartilhado pelos modulos web. */
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "./config.js";
 

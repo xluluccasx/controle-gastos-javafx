@@ -17,10 +17,14 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Exibe e valida o formulario JavaFX de inclusao ou edicao de lancamentos.
+ */
 public class TransactionFormDialog {
     private final CategoryService categoryService = new CategoryService();
     private Path selectedReceipt;
 
+    /** Monta o formulario e aguarda a acao escolhida pelo usuario. */
     public Optional<Result> showAndWait(Window owner, Transaction existing) {
         Dialog<Result> dialog = new Dialog<>();
         boolean editing = existing != null;
@@ -132,6 +136,7 @@ public class TransactionFormDialog {
         return dialog.showAndWait();
     }
 
+    /** Impede a gravacao quando os campos obrigatorios sao invalidos. */
     private void validateBeforeSave(javafx.event.ActionEvent ev, ComboBox<String> category, TextField amount, DatePicker date) {
             try {
                 if (category.getValue() == null || category.getValue().isBlank()) {
@@ -147,12 +152,14 @@ public class TransactionFormDialog {
             }
     }
 
+    /** Cria um rotulo com o estilo padrao do formulario. */
     private static Label label(String text) {
         Label label = new Label(text);
         label.setStyle("-fx-font-weight: 600;");
         return label;
     }
 
+    /** Converte e valida o valor monetario digitado. */
     private static BigDecimal parseAmount(String rawValue) {
         String raw = rawValue == null ? "" : rawValue.trim().replace(",", ".");
         if (raw.isBlank()) throw new IllegalArgumentException("Valor obrigatorio.");
@@ -166,5 +173,8 @@ public class TransactionFormDialog {
         return value;
     }
 
+    /**
+     * Agrupa as responsabilidades de Result.
+     */
     public record Result(Transaction transaction, Path receiptFile, boolean continueAdding) {}
 }

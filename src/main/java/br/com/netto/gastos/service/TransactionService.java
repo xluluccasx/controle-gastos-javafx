@@ -17,15 +17,20 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Gerencia lancamentos e comprovantes financeiros no Supabase.
+ */
 public class TransactionService {
 
     private final SupabaseClient client = new SupabaseClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Monta o endereco REST da tabela de lancamentos. */
     private String restBase() {
         return AppConfig.SUPABASE_URL + "/rest/v1/" + AppConfig.TABLE_TRANSACTIONS;
     }
 
+    /** Cria uma categoria personalizada e a vincula ao usuario. */
     public Transaction add(Transaction t) throws Exception {
         // Importante: user_id vem da Session (não confie em input)
         t.setUserId(Session.userId());
@@ -58,6 +63,7 @@ public class TransactionService {
         return parseTransaction(arr.get(0));
     }
 
+    /** Atualiza um lancamento e, quando informado, seu comprovante. */
     public void update(Transaction t) throws Exception {
         String body = """
                 {
@@ -87,6 +93,7 @@ public class TransactionService {
         client.patchJson(url, body, null);
     }
 
+    /** Busca um lancamento pelo identificador. */
     public Transaction findById(String id) throws Exception {
         String url = restBase()
                 + "?id=eq." + encode(id)
@@ -100,6 +107,7 @@ public class TransactionService {
         return parseTransaction(arr.get(0));
     }
 
+    /** Lista os lancamentos do usuario dentro do periodo informado. */
     public List<Transaction> listByDate(LocalDate from, LocalDate to) throws Exception {
         String url = restBase()
                 + "?user_id=eq." + Session.userId()
@@ -117,12 +125,14 @@ public class TransactionService {
         return out;
     }
 
+    /** Exclui um lancamento pertencente ao usuario atual. */
     public void deleteById(String id) throws Exception {
         String encoded = URLEncoder.encode("eq." + id, StandardCharsets.UTF_8);
         String url = restBase() + "?id=" + encoded + "&user_id=eq." + encode(Session.userId());
         client.delete(url);
     }
 
+    /** Envia um comprovante e retorna o caminho salvo no armazenamento. */
     public String uploadReceipt(String transactionId, Path file) throws Exception {
         if (file == null) {
             return null;
@@ -148,6 +158,7 @@ public class TransactionService {
         return storagePath;
     }
 
+    /** Solicita uma URL temporaria para acessar o comprovante. */
     public String createReceiptUrl(String receiptPath) throws Exception {
         String body = "{\"expiresIn\":60}";
         String url = AppConfig.SUPABASE_URL + "/storage/v1/object/sign/receipts/" + receiptPath;
@@ -162,6 +173,7 @@ public class TransactionService {
         return AppConfig.SUPABASE_URL + "/storage/v1" + signed;
     }
 
+    /** Converte o JSON retornado pelo Supabase em um lancamento. */
     private Transaction parseTransaction(JsonNode n) {
         Transaction t = new Transaction();
 
@@ -185,11 +197,13 @@ public class TransactionService {
         return t;
     }
 
+    /** Escapa caracteres especiais antes de montar um JSON. */
     private static String escapeJson(String s) {
         if (s == null) return "";
         return s.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    /** Codifica um valor para uso seguro em parametros de URL. */
     private static String encode(String s) {
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }

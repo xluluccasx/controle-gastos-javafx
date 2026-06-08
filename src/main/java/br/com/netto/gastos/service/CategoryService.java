@@ -14,14 +14,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Gerencia categorias globais, personalizadas e preferencias do usuario no Supabase.
+ */
 public class CategoryService {
     private final SupabaseClient client = new SupabaseClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Monta o endereco REST da tabela informada. */
     private String table(String name) {
         return AppConfig.SUPABASE_URL + "/rest/v1/" + name;
     }
 
+    /** Lista as categorias visiveis do tipo de lancamento informado. */
     public List<CategoryItem> listVisibleByType(TxType type) throws Exception {
         List<CategoryItem> all = listForCurrentUser();
         return all.stream()
@@ -30,6 +35,7 @@ public class CategoryService {
                 .toList();
     }
 
+    /** Combina categorias padrao e personalizadas com as preferencias do usuario. */
     public List<CategoryItem> listForCurrentUser() throws Exception {
         JsonNode categories = mapper.readTree(client.get(table("categories") + "?select=*&order=name.asc"));
         JsonNode userCategories = mapper.readTree(client.get(
@@ -68,6 +74,7 @@ public class CategoryService {
         return out;
     }
 
+    /** Cria uma categoria personalizada e a vincula ao usuario. */
     public void add(String name, TxType type) throws Exception {
         String body = """
                 {"name":"%s","type":"%s","is_default":false}
@@ -81,11 +88,13 @@ public class CategoryService {
         link(categoryId, false);
     }
 
+    /** Altera o nome de uma categoria personalizada. */
     public void rename(String categoryId, String newName) throws Exception {
         String body = "{\"name\":\"" + escapeJson(newName) + "\"}";
         client.patchJson(table("categories") + "?id=eq." + encode(categoryId) + "&is_default=eq.false", body, null);
     }
 
+    /** Remove o vinculo e a categoria personalizada. */
     public void deleteCustom(String categoryId) throws Exception {
         client.delete(table("user_categories")
                 + "?user_id=eq." + encode(Session.userId())
@@ -93,6 +102,7 @@ public class CategoryService {
         client.delete(table("categories") + "?id=eq." + encode(categoryId) + "&is_default=eq.false");
     }
 
+    /** Define se a categoria esta oculta. */
     public void setHidden(String categoryId, boolean hidden) throws Exception {
         String body = """
                 {"user_id":"%s","category_id":"%s","hidden":%s}
@@ -104,6 +114,7 @@ public class CategoryService {
         );
     }
 
+    /** Vincula uma categoria personalizada ao usuario atual. */
     private void link(String categoryId, boolean hidden) throws Exception {
         String body = """
                 {"user_id":"%s","category_id":"%s","hidden":%s}
@@ -111,10 +122,12 @@ public class CategoryService {
         client.postJson(table("user_categories"), body, null);
     }
 
+    /** Codifica um valor para uso seguro em parametros de URL. */
     private static String encode(String s) {
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 
+    /** Escapa caracteres especiais antes de montar um JSON. */
     private static String escapeJson(String s) {
         return s == null ? "" : s.replace("\\", "\\\\").replace("\"", "\\\"");
     }

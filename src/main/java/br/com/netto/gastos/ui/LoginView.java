@@ -16,6 +16,9 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Constroi a tela JavaFX de autenticacao e seus fluxos auxiliares.
+ */
 public class LoginView {
 
     private final Stage stage;
@@ -23,15 +26,18 @@ public class LoginView {
 
     private final BorderPane root = new BorderPane();
 
+    /** Inicializa a tela de login para o palco informado. */
     public LoginView(Stage stage) {
         this.stage = stage;
         build();
     }
 
+    /** Retorna o componente raiz que sera exibido na cena. */
     public Parent getRoot() {
         return root;
     }
 
+    /** Monta os componentes e eventos da tela. */
     private void build() {
         Label title = new Label("Controle de Gastos");
         title.setStyle("-fx-font-size: 30px; -fx-font-weight: 800; -fx-text-fill: #172033;");
@@ -140,6 +146,7 @@ public class LoginView {
 
     }
 
+    /** Abre a pagina web de cadastro no navegador padrao. */
     private void openSignupPage(String initialEmail) throws Exception {
         if (!Desktop.isDesktopSupported() || !Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
             throw new IllegalStateException("Navegador padrao nao disponivel neste sistema.");
@@ -158,6 +165,7 @@ public class LoginView {
         Desktop.getDesktop().browse(URI.create(url));
     }
 
+    /** Localiza o arquivo de cadastro nos diretorios esperados. */
     private Path findSignupPage() throws Exception {
         Path workingDirPage = Path.of(System.getProperty("user.dir"), "signup.html").toAbsolutePath().normalize();
         if (Files.exists(workingDirPage)) {

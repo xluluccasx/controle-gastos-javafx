@@ -5,11 +5,15 @@ import br.com.netto.gastos.config.Session;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+/**
+ * Executa cadastro, login, recuperacao de senha e encerramento de sessao.
+ */
 public class AuthService {
 
     private final SupabaseClient client = new SupabaseClient();
     private final ObjectMapper mapper = new ObjectMapper();
 
+    /** Cadastra um usuario no Supabase e traduz erros conhecidos. */
     public void signUp(String email, String password) throws Exception {
         String url = AppConfig.SUPABASE_URL + "/auth/v1/signup";
 
@@ -47,6 +51,7 @@ public class AuthService {
         }
     }
 
+    /** Autentica o usuario e armazena os dados de sua sessao. */
     public void signIn(String email, String password) throws Exception {
         String url = AppConfig.SUPABASE_URL + "/auth/v1/token?grant_type=password";
 
@@ -82,6 +87,7 @@ public class AuthService {
         }
     }
 
+    /** Solicita ao Supabase o envio do email de recuperacao de senha. */
     public void resetPassword(String email) throws Exception {
         String url = AppConfig.SUPABASE_URL + "/auth/v1/recover";
 
@@ -102,6 +108,7 @@ public class AuthService {
         }
     }
 
+    /** Encerra a sessao mantida pela aplicacao. */
     public void signOut() {
         Session.clear();
     }
