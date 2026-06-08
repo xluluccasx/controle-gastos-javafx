@@ -547,6 +547,17 @@ label[for="receiptFile"] {
   overflow: hidden;
 }
 
+.category-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
 .category-item {
   display: flex;
   justify-content: space-between;
@@ -563,6 +574,13 @@ label[for="receiptFile"] {
 
 .category-item:hover {
   background: #f8fbff;
+}
+
+.category-empty {
+  padding: 18px 14px;
+  color: var(--muted);
+  text-align: center;
+  background: #fff;
 }
 
 .inline-check {
@@ -713,6 +731,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   }
 
   .form-grid,
+  .category-filters,
   .kpis,
   .content-grid {
     grid-template-columns: 1fr;

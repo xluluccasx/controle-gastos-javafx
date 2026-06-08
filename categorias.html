@@ -41,6 +41,25 @@
                 <button id="btnSaveCategories" class="btn btn-primary">Salvar alteracoes</button>
             </div>
 
+            <div class="category-filters">
+                <div>
+                    <label for="categoryTypeFilter">Filtrar por tipo</label>
+                    <select id="categoryTypeFilter">
+                        <option value="ALL">Todas</option>
+                        <option value="INCOME">Receitas</option>
+                        <option value="EXPENSE">Despesas</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="categoryStatusFilter">Filtrar por status</label>
+                    <select id="categoryStatusFilter">
+                        <option value="ALL">Todas</option>
+                        <option value="ACTIVE">Ativas</option>
+                        <option value="HIDDEN">Ocultas</option>
+                    </select>
+                </div>
+            </div>
+
             <ul id="categoryList" class="category-list"></ul>
             <p id="categoryStatus" class="status"></p>
         </section>

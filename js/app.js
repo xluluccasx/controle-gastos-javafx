@@ -16,6 +16,7 @@ let currentTransactions = [];
 let currentReportPreview = null;
 let currentEditTransaction = null;
 let categoryHiddenChanges = {};
+let currentCategories = [];
 let lastActivityWrite = 0;
 let expiringSession = false;
 
@@ -348,6 +349,8 @@ async function initCategories() {
   byId("btnSaveCategories")?.addEventListener("click", saveCategoryChanges);
   byId("categoryList")?.addEventListener("click", onCategoryListClick);
   byId("categoryList")?.addEventListener("change", onCategoryListChange);
+  byId("categoryTypeFilter")?.addEventListener("change", renderCategoryList);
+  byId("categoryStatusFilter")?.addEventListener("change", renderCategoryList);
 
   await loadCategoryList();
 }
@@ -1921,37 +1924,68 @@ async function loadCategoryList() {
     userConfigByCategoryId[userCat.category_id] = userCat;
   });
 
-  categoryList.innerHTML = "";
-
-  (categories || []).forEach(cat => {
+  currentCategories = (categories || []).flatMap(cat => {
     const userConfig = userConfigByCategoryId[cat.id];
     const isOwnCustomCategory = !cat.is_default && Boolean(userConfig);
 
     if (!cat.is_default && !isOwnCustomCategory) {
-      return;
+      return [];
     }
 
-    const hidden = userConfig?.hidden || false;
+    return [{
+      ...cat,
+      hidden: userConfig?.hidden || false
+    }];
+  });
+
+  renderCategoryList();
+}
+
+function renderCategoryList() {
+  const categoryList = byId("categoryList");
+  if (!categoryList) {
+    return;
+  }
+
+  const typeFilter = byId("categoryTypeFilter")?.value || "ALL";
+  const statusFilter = byId("categoryStatusFilter")?.value || "ALL";
+  const filteredCategories = currentCategories.filter(cat => {
+    const matchesType = typeFilter === "ALL" || cat.type === typeFilter;
+    const matchesStatus =
+      statusFilter === "ALL" ||
+      (statusFilter === "HIDDEN" ? cat.hidden : !cat.hidden);
+
+    return matchesType && matchesStatus;
+  });
+
+  categoryList.innerHTML = "";
+
+  if (!filteredCategories.length) {
     const li = document.createElement("li");
+    li.className = "category-empty";
+    li.textContent = "Nenhuma categoria encontrada com os filtros selecionados.";
+    categoryList.appendChild(li);
+    return;
+  }
+
+  filteredCategories.forEach(cat => {
+    const li = document.createElement("li");
+    const name = document.createElement("span");
+    const actions = document.createElement("div");
 
     li.className = "category-item";
-    li.innerHTML = `
-      <span>${cat.name} (${typeLabels[cat.type] || cat.type}) ${cat.is_default ? "*" : ""}</span>
-      <div>
-        ${
-          cat.is_default
-            ? `<label class="inline-check">
-                <input type="checkbox" data-hide="${cat.id}" ${hidden ? "checked" : ""}>
-                Ocultar
-              </label>`
-            : `
-              <button class="btn btn-light" data-user-edit="${cat.id}">Editar</button>
-              <button class="btn btn-danger" data-user-delete="${cat.id}">Excluir</button>
-            `
-        }
-      </div>
-    `;
+    name.textContent = `${cat.name}${cat.is_default ? " *" : ""}`;
+    actions.innerHTML = cat.is_default
+      ? `<label class="inline-check">
+          <input type="checkbox" data-hide="${cat.id}" ${cat.hidden ? "checked" : ""}>
+          Ocultar
+        </label>`
+      : `
+        <button class="btn btn-light" data-user-edit="${cat.id}">Editar</button>
+        <button class="btn btn-danger" data-user-delete="${cat.id}">Excluir</button>
+      `;
 
+    li.append(name, actions);
     categoryList.appendChild(li);
   });
 }
@@ -2049,6 +2083,10 @@ function onCategoryListChange(e) {
   }
 
   categoryHiddenChanges[id] = e.target.checked;
+  const category = currentCategories.find(cat => String(cat.id) === id);
+  if (category) {
+    category.hidden = e.target.checked;
+  }
 }
 
 async function saveCategoryChanges() {
